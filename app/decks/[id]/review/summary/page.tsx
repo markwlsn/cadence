@@ -14,6 +14,7 @@ export default function SessionSummaryPage() {
   const sessionId = searchParams?.get('sessionId') || '';
 
   const [summary, setSummary] = useState<{
+    deckId: string;
     cardsReviewed: number;
     accuracy: number;
     streak: number;

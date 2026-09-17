@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
+    "@libsql/client": "^0.18.0",
+    "@prisma/adapter-libsql": "^7.10.0",
     "dotenv": "^17.4.2",
     "next": "16.3.5",
-    "pdf-parse": "^2.4.5",
+    "pdf-parse": "^1.1.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

@@ -33,9 +33,9 @@ export function CardStack({
   const SWIPE_THRESHOLD = 90;
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only drag from top card
-    if ((e.target as HTMLElement).closest('button, [role="button"]') && isFlipped) {
-      // Don't drag if clicking buttons on card
+    // Only ignore drag if clicking inner buttons/links (e.g. MCQ options or links)
+    const interactive = (e.target as HTMLElement).closest('button, a, input');
+    if (interactive) {
       return;
     }
     setIsDragging(true);

@@ -164,6 +164,30 @@ async function main() {
     },
   });
 
+  // Card 8 (Spanish MCQ card)
+  await prisma.card.create({
+    data: {
+      id: 'card-span-03',
+      deckId: spanishDeck.id,
+      type: 'mcq',
+      front: 'Which term indicates "high blood pressure" in clinical Spanish documentation?',
+      back: 'Hipertensión arterial',
+      explanation: 'Often abbreviated HTA in medical charts; "presión alta" is common patient parlance.',
+      options: JSON.stringify([
+        'Hipertensión arterial',
+        'Hipotensión postural',
+        'Arritmia sinusal',
+        'Taquicardia ventricular',
+      ]),
+      due: pastDay(0.5),
+      stability: 3.5,
+      difficulty: 6.0,
+      reps: 2,
+      lapses: 0,
+      lastReviewed: pastDay(2),
+    },
+  });
+
   // Add review log entries for stats calculation (accuracy last 7 days)
   await prisma.reviewLogEntry.createMany({
     data: [

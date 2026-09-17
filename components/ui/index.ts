@@ -5,3 +5,4 @@ export { BottomSheet } from './BottomSheet';
 export { Badge } from './Badge';
 export { ProgressRing } from './ProgressRing';
 export { VisuallyHidden } from './VisuallyHidden';
+export { OnboardingCheck } from './OnboardingCheck';

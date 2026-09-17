@@ -189,13 +189,15 @@ export async function parseContent(rawText: string): Promise<string[]> {
  * @returns      - Extracted plain text.
  */
 export async function parsePdf(buffer: Buffer): Promise<string> {
-  // Dynamic import keeps pdf-parse out of the browser bundle.
-  // Cast through unknown to work around @types/pdf-parse ESM/CJS interop quirk.
-  const mod = await import('pdf-parse');
+  // Dynamic import of pdf-parse lib bypasses test debug runner in index.js
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfParse = (mod as unknown as { default: (buf: Buffer) => Promise<{ text: string }> }).default;
-  const result = await pdfParse(buffer);
-  return result.text;
+  const mod: any = await import('pdf-parse/lib/pdf-parse.js');
+  const pdfParse = typeof mod === 'function' ? mod : (mod.default || mod);
+  if (typeof pdfParse === 'function') {
+    const result = await pdfParse(buffer);
+    return result.text;
+  }
+  throw new Error('[parsePdf] Could not initialize PDF parser.');
 }
 
 // ---------------------------------------------------------------------------

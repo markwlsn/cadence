@@ -342,35 +342,11 @@ export async function generateCards(
   chunks: string[],
   deckId: string
 ): Promise<Card[]> {
-  // Phase 2 stub fallback when ANTHROPIC_API_KEY is not configured
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.log('[generate-cards] STUB: Returning hardcoded cards (no ANTHROPIC_API_KEY)');
-    return [
-      {
-        id: '',
-        deckId,
-        type: 'basic',
-        front: chunks[0] ? `Key Concept from: ${chunks[0].slice(0, 40)}...` : 'Primary active mechanism?',
-        back: 'Inhibits competitive binding at the allosteric site to maintain metabolic equilibrium.',
-        explanation: 'Negative feedback loops ensure substrate concentration remains tightly controlled.',
-        due: new Date().toISOString(),
-        stability: 0,
-        difficulty: 5.0,
-        reps: 0,
-      },
-      {
-        id: '',
-        deckId,
-        type: 'cloze',
-        front: 'The fundamental regulatory feedback mechanism in this pathway is {{blank}}.',
-        back: 'allosteric inhibition',
-        explanation: 'Enzyme conformational shifts modulate catalytic affinity based on effector levels.',
-        due: new Date().toISOString(),
-        stability: 0,
-        difficulty: 5.0,
-        reps: 0,
-      },
-    ];
+    throw new Error(
+      '[generate-cards] ANTHROPIC_API_KEY is not configured. ' +
+      'Please configure it in .env.local to generate real flashcards.'
+    );
   }
 
   const allCards: Card[] = [];

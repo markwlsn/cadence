@@ -19,24 +19,27 @@ export function FlashCard({
   selectedMcqOption,
   onSelectMcqOption,
 }: FlashCardProps) {
-  // Render helper for cloze cards
-  const renderCloze = (text: string, reveal: boolean) => {
-    // Matches {{c1::hidden text}}
-    const parts = text.split(/(\{\{c\d+::.*?\}\})/g);
+  // Render helper for cloze cards (supports both {{blank}} and {{c1::term}} syntax)
+  const renderClozeFront = (front: string) => {
+    if (front.includes('{{blank}}')) {
+      const parts = front.split('{{blank}}');
+      return parts.flatMap((part, index) => [
+        <span key={`text-${index}`}>{part}</span>,
+        index < parts.length - 1 ? (
+          <span
+            key={`blank-${index}`}
+            className="inline-block px-2 py-0.5 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[var(--color-accent)] font-mono text-[14px] mx-1 select-none"
+          >
+            [ ... ]
+          </span>
+        ) : null,
+      ]);
+    }
+
+    const parts = front.split(/(\{\{c\d+::.*?\}\})/g);
     return parts.map((part, index) => {
       const match = part.match(/\{\{c\d+::(.*?)\}\}/);
       if (match) {
-        const hiddenContent = match[1];
-        if (reveal) {
-          return (
-            <span
-              key={index}
-              className="text-[var(--color-accent)] font-semibold border-b-2 border-[var(--color-accent)] px-0.5"
-            >
-              {hiddenContent}
-            </span>
-          );
-        }
         return (
           <span
             key={index}
@@ -50,13 +53,55 @@ export function FlashCard({
     });
   };
 
+  const renderClozeBack = (front: string, back: string) => {
+    if (front.includes('{{blank}}')) {
+      const parts = front.split('{{blank}}');
+      return (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-[17px] sm:text-[19px] font-medium text-[var(--color-text-secondary)] leading-relaxed">
+            {parts.flatMap((part, index) => [
+              <span key={`p-${index}`}>{part}</span>,
+              index < parts.length - 1 ? (
+                <span
+                  key={`b-${index}`}
+                  className="text-[var(--color-accent)] font-semibold underline underline-offset-4 decoration-2 px-1"
+                >
+                  {back}
+                </span>
+              ) : null,
+            ])}
+          </p>
+          <span className="text-[22px] sm:text-[26px] font-bold text-[var(--color-accent)] mt-1">
+            {back}
+          </span>
+        </div>
+      );
+    }
+
+    const parts = (back || front).split(/(\{\{c\d+::.*?\}\})/g);
+    return parts.map((part, index) => {
+      const match = part.match(/\{\{c\d+::(.*?)\}\}/);
+      if (match) {
+        return (
+          <span
+            key={index}
+            className="text-[var(--color-accent)] font-semibold border-b-2 border-[var(--color-accent)] px-0.5"
+          >
+            {match[1]}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <div
       className="card-flip-container w-full h-[360px] sm:h-[420px] cursor-pointer select-none"
       onClick={() => {
         if (!isFlipped) onFlip();
       }}
-      role="button"
+      role={isFlipped ? 'region' : 'button'}
       tabIndex={0}
       aria-label={`Flashcard: ${isFlipped ? 'Answer side' : 'Question side'}. Tap or press enter to flip.`}
       onKeyDown={(e) => {
@@ -81,7 +126,7 @@ export function FlashCard({
           <div className="my-auto flex flex-col items-center justify-center text-center px-2 sm:px-4">
             {card.type === 'cloze' ? (
               <p className="text-[20px] sm:text-[24px] font-medium leading-relaxed text-[var(--color-text)]">
-                {renderCloze(card.front, false)}
+                {renderClozeFront(card.front)}
               </p>
             ) : (
               <p className="text-[20px] sm:text-[24px] font-medium leading-relaxed text-[var(--color-text)]">
@@ -144,7 +189,7 @@ export function FlashCard({
 
           <div className="my-auto flex flex-col items-center justify-center text-center px-2 sm:px-4 py-4">
             <div className="text-[20px] sm:text-[24px] font-semibold text-[var(--color-text)] leading-relaxed mb-3">
-              {card.type === 'cloze' ? renderCloze(card.back, true) : card.back}
+              {card.type === 'cloze' ? renderClozeBack(card.front, card.back) : card.back}
             </div>
 
             {card.explanation && (

@@ -4,9 +4,20 @@ import { generateCards } from '@/lib/ai/generate-cards';
 import { mapToSharedCard } from '@/lib/fsrs';
 import type { Card } from '@/types';
 
+import crypto from 'crypto';
+
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
+
+interface CachedGeneration {
+  cards: Card[];
+  timestamp: number;
+}
+
+// In-memory cache to prevent duplicate Claude API calls on identical chunks (Step 9)
+const generationCache = new Map<string, CachedGeneration>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute deduplication window
 
 /** Validate that an object has the essential properties of a Card before DB persistence. */
 function isValidCardShape(c: unknown): c is {
@@ -48,6 +59,15 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'chunks array is required' }, { status: 400 });
     }
 
+    // Check caching / idempotency to save API costs on duplicate submissions (Step 9)
+    const hash = crypto.createHash('sha256').update(chunks.join('::')).digest('hex');
+    const cacheKey = `${deckId}:${hash}`;
+    const cached = generationCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json(cached.cards, { status: 200 });
+    }
+
     // Call generator (returns Card[] candidate objects)
     const rawCards = await generateCards(chunks, deckId);
 
@@ -86,9 +106,14 @@ export async function POST(request: Request, context: RouteContext) {
       createdCards.push(mapToSharedCard(row));
     }
 
+    generationCache.set(cacheKey, { cards: createdCards, timestamp: Date.now() });
+
     return NextResponse.json(createdCards, { status: 201 });
   } catch (error) {
     console.error('Error in /api/decks/:id/generate:', error);
-    return NextResponse.json({ error: 'Failed to generate cards' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to generate cards' },
+      { status: 500 }
+    );
   }
 }

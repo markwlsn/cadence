@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getDecks, getDeckStats } from '@/lib/data';
-import { Badge, ProgressRing, Button } from '@/components/ui';
+import { Badge, ProgressRing, Button, OnboardingCheck } from '@/components/ui';
 
 export const revalidate = 0; // Fresh on every navigation
 
@@ -13,6 +13,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
+      <OnboardingCheck />
       {/* Top App Bar */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -30,7 +31,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/onboarding"
-              className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2 py-1 transition-colors hidden sm:inline-block"
+              className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2 py-1 transition-colors inline-block"
             >
               How it works
             </Link>

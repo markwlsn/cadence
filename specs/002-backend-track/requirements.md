@@ -116,10 +116,13 @@ export async function generateCards(chunks: string[], deckId: string): Promise<C
 
 Both stubs SHALL be replaceable in Phase 4 without modifying any route code.
 
-## REQ-012 — API Response Envelope
+## REQ-012 — API Response Format & Contract Alignment
 
-THE system SHALL return all successful responses as `{ data: <payload> }`.  
+THE system SHALL return successful HTTP responses matching the `/specs/constitution.md` API contract table directly (`Deck`, `Card[]`, `DeckStats`, etc.) to align across `/lib/data.ts` and API consumers.
 THE system SHALL return all error responses as `{ error: string }` with an appropriate HTTP 4xx or 5xx status code.
+
+> **Phase 7 Spec Sync (2026-09-17):**
+> Harmonized REQ-012 with `/specs/constitution.md` API table. To eliminate unnecessary object nesting and maintain clean TypeScript typing across the `/lib/data.ts` seam, successful responses return typed payloads directly rather than wrapping in `{ data: ... }`. Error responses retain `{ error: string }`.
 
 ## REQ-013 — Card Validation Before Persist
 

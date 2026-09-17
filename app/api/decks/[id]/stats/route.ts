@@ -67,7 +67,7 @@ export async function GET(_request: Request, context: RouteContext) {
     ).length;
 
     const accuracyLast7Days =
-      totalReviews > 0 ? Number((successfulReviews / totalReviews).toFixed(4)) : 1;
+      totalReviews > 0 ? Number((successfulReviews / totalReviews).toFixed(4)) : 0;
 
     const stats: DeckStats = {
       deckId,

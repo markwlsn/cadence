@@ -16,6 +16,7 @@ export default function NewDeckPage() {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,18 +46,21 @@ export default function NewDeckPage() {
     if (!title.trim()) return;
 
     setIsProcessing(true);
+    setErrorMessage(null);
 
     try {
       const result = await createDeck({
         title: title.trim(),
         sourceType,
-        rawContent: pastedText || file?.name || '',
+        rawContent: pastedText,
+        file: file || undefined,
       });
       // Redirect to the newly created deck's dashboard
       router.push(`/decks/${result.deck.id}`);
     } catch (err) {
       console.error(err);
       setIsProcessing(false);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to create deck or generate flashcards.');
     }
   };
 
@@ -101,6 +105,16 @@ export default function NewDeckPage() {
                 Provide notes in any format. Cadence synthesizes an active recall queue automatically.
               </p>
             </div>
+
+            {errorMessage && (
+              <div
+                role="alert"
+                className="p-4 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[14px] flex items-start gap-3 animate-fade-in"
+              >
+                <span className="font-bold">Error:</span>
+                <span className="flex-1">{errorMessage}</span>
+              </div>
+            )}
 
             {/* Deck Title */}
             <div>
