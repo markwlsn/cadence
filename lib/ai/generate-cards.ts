@@ -55,7 +55,7 @@ RULES (non-negotiable):
    GOOD question: "Why does blocking the electron transport chain halt ATP synthesis?" → requires understanding a causal mechanism.
 3. MIX card types: use "basic" for causal/mechanism questions, "cloze" for key terminology in context (fill-in-the-blank), "mcq" for conceptual distinctions. Aim for variety across all three types.
 4. For "mcq" cards: distractors MUST each reflect a real, documented misconception or a plausible near-neighbour concept. Never use obviously wrong or random text.
-5. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, a real-world implication, or why common misconceptions are wrong. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. ```mermaid graph TD; A-->B ```) as an alternative visual aid.
+5. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, a real-world implication, or why common misconceptions are wrong. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. \`\`\`mermaid graph TD; A-->B \`\`\`) as an alternative visual aid.
 6. For "cloze" type: the "front" field should be a complete sentence with exactly one key term replaced by {{blank}}. The "back" field is the missing term only.
 7. Respond ONLY with a valid JSON array. No preamble, no markdown code fences wrapping the array, no commentary.
 
@@ -342,6 +342,37 @@ export async function generateCards(
   chunks: string[],
   deckId: string
 ): Promise<Card[]> {
+  // Phase 2 stub fallback when ANTHROPIC_API_KEY is not configured
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('[generate-cards] STUB: Returning hardcoded cards (no ANTHROPIC_API_KEY)');
+    return [
+      {
+        id: '',
+        deckId,
+        type: 'basic',
+        front: chunks[0] ? `Key Concept from: ${chunks[0].slice(0, 40)}...` : 'Primary active mechanism?',
+        back: 'Inhibits competitive binding at the allosteric site to maintain metabolic equilibrium.',
+        explanation: 'Negative feedback loops ensure substrate concentration remains tightly controlled.',
+        due: new Date().toISOString(),
+        stability: 0,
+        difficulty: 5.0,
+        reps: 0,
+      },
+      {
+        id: '',
+        deckId,
+        type: 'cloze',
+        front: 'The fundamental regulatory feedback mechanism in this pathway is {{blank}}.',
+        back: 'allosteric inhibition',
+        explanation: 'Enzyme conformational shifts modulate catalytic affinity based on effector levels.',
+        due: new Date().toISOString(),
+        stability: 0,
+        difficulty: 5.0,
+        reps: 0,
+      },
+    ];
+  }
+
   const allCards: Card[] = [];
 
   for (let i = 0; i < chunks.length; i++) {
