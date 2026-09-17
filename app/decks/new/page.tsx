@@ -94,6 +94,9 @@ export default function NewDeckPage() {
             <p className="text-[15px] text-[var(--color-text-secondary)] max-w-sm">
               Extracting key concepts, writing explanations, and formatting recall cards with FSRS parameters.
             </p>
+            <p className="text-[13px] text-[var(--color-text-secondary)]/70 mt-3">
+              Synthesizing active-recall flashcards (~15–20 seconds)…
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-8">

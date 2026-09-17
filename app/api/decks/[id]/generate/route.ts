@@ -53,10 +53,19 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const chunks = Array.isArray(body.chunks) ? body.chunks : [];
+    let chunks = Array.isArray(body.chunks) ? body.chunks : [];
 
     if (chunks.length === 0) {
       return NextResponse.json({ error: 'chunks array is required' }, { status: 400 });
+    }
+
+    // Cap chunks per generation to avoid browser HTTP timeouts (default 8 chunks = ~35 cards in ~15-20s)
+    const MAX_CHUNKS = parseInt(process.env.MAX_CHUNKS_PER_DECK ?? '8', 10);
+    if (chunks.length > MAX_CHUNKS) {
+      console.log(
+        `[generate] Document has ${chunks.length} chunks. Capping to top ${MAX_CHUNKS} chunks for fast generation.`
+      );
+      chunks = chunks.slice(0, MAX_CHUNKS);
     }
 
     // Check caching / idempotency to save API costs on duplicate submissions (Step 9)
