@@ -26,29 +26,17 @@ import { prisma } from '@/lib/db';
 export const MASTERY_STABILITY_DAYS = 21;
 
 /**
- * Minimum difficulty threshold for cram queue inclusion.
- * FSRS difficulty ranges from 1 (easiest) to 10 (hardest).
- * Cards at or above this value represent the user's persistent weak points.
- */
-export const CRAM_DIFFICULTY_THRESHOLD = 6.0;
-
-/**
- * Maximum stability (in days) for a card to be eligible for cram review.
- * Cards with high stability already have solid retention; cram time is better
- * spent on cards that are fragile.
- */
-export const CRAM_MAX_STABILITY_DAYS = 7;
-
-/**
  * Default number of cards returned by getCramQueue.
  */
 const CRAM_DEFAULT_LIMIT = 20;
 
 // ─────────────────────────────────────────────
-// FSRS instance (default parameters)
+// FSRS instance (daily scheduling mode)
 // ─────────────────────────────────────────────
 
-const f = fsrs();
+const f = fsrs({
+  enable_short_term: false,
+});
 
 // ─────────────────────────────────────────────
 // Rating mapping
@@ -65,28 +53,30 @@ const RATING_MAP: Record<Rating, Grade> = {
 // Type helpers
 // ─────────────────────────────────────────────
 
-/** Convert a Prisma Card row to the ts-fsrs CardInput shape. */
+/** Convert a Card (or DB row) to the ts-fsrs Card shape. */
 function toFsrsCard(card: {
   due: Date;
   stability: number;
   difficulty: number;
   lastReviewed: Date | null;
   reps: number;
-  lapses: number;
-  state: string;
-  scheduledDays: number;
-  learningSteps: number;
+  lapses?: number;
+  state?: string;
+  scheduledDays?: number;
+  learningSteps?: number;
 }): FsrsCard {
+  const isNew = card.reps === 0 || card.stability === 0;
+
   return {
     due: card.due,
-    stability: card.stability,
-    difficulty: card.difficulty,
-    elapsed_days: 0,            // deprecated but required by interface
-    scheduled_days: card.scheduledDays,
-    learning_steps: card.learningSteps,
+    stability: isNew ? 0 : Math.max(0.1, card.stability),
+    difficulty: isNew ? 0 : Math.max(1, Math.min(10, card.difficulty || 5.0)),
+    elapsed_days: 0,
+    scheduled_days: card.scheduledDays ?? 0,
+    learning_steps: card.learningSteps ?? 0,
     reps: card.reps,
-    lapses: card.lapses,
-    state: State[card.state as keyof typeof State] ?? State.New,
+    lapses: card.lapses ?? 0,
+    state: isNew ? State.New : State.Review,
     last_review: card.lastReviewed ?? undefined,
   };
 }
@@ -132,34 +122,29 @@ export function mapToSharedCard(row: {
  *
  * Takes the current Card (shared type) and a rating, runs it through FSRS,
  * and returns an updated Card with new `due`, `stability`, `difficulty`,
- * `lastReviewed`, and `reps`. The caller is responsible for persisting.
+ * `lastReviewed`, and `reps`.
  *
  * REQ-007, REQ-008, REQ-009
  */
 export function scheduleCard(card: Card, rating: Rating): Card {
+  const now = new Date();
   const fsrsCard = toFsrsCard({
     due: new Date(card.due),
     stability: card.stability,
     difficulty: card.difficulty,
     lastReviewed: card.lastReviewed ? new Date(card.lastReviewed) : null,
     reps: card.reps,
-    lapses: 0,          // not in shared type; use default
-    state: 'New',       // will be overridden by stability/reps heuristic below
-    scheduledDays: 0,
-    learningSteps: 0,
   });
 
-  const now = new Date();
   const grade = RATING_MAP[rating];
   const result = f.next(fsrsCard, now, grade);
-
   const updated = result.card;
 
   return {
     ...card,
     due: updated.due.toISOString(),
-    stability: updated.stability,
-    difficulty: updated.difficulty,
+    stability: Number(updated.stability.toFixed(4)),
+    difficulty: Number(updated.difficulty.toFixed(4)),
     lastReviewed: now.toISOString(),
     reps: updated.reps,
   };
@@ -213,7 +198,6 @@ export async function getMasteryQueue(deckId: string): Promise<Card[]> {
  * REQ-006
  */
 export async function getCramQueue(deckId: string, limit: number = CRAM_DEFAULT_LIMIT): Promise<Card[]> {
-  // Tunable weights — change here, not in the formula
   const difficultyWeight = 1.0;
   const stabilityWeight = 1.0;
 
@@ -232,12 +216,11 @@ export async function getCramQueue(deckId: string, limit: number = CRAM_DEFAULT_
 }
 
 // ─────────────────────────────────────────────
-// Internal helper for review/submit route
+// Review submit helper
 // ─────────────────────────────────────────────
 
 /**
- * Run FSRS on a Prisma card row and return the fields to update.
- * Returns both the updated shared Card and the raw ts-fsrs log for storage.
+ * Run FSRS on a Prisma card row, update card fields, and write ReviewLogEntry.
  */
 export async function scheduleAndPersistCard(
   cardId: string,
