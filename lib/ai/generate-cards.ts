@@ -365,6 +365,10 @@ export async function generateCards(
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
+    if (i > 0) {
+      // Gentle 1s pacing between chunks to prevent burst-firing requests on free tier
+      await new Promise((r) => setTimeout(r, 1000));
+    }
     console.log(`[generate-cards] Processing chunk ${i + 1}/${chunks.length} (${chunk.split(/\s+/).filter(Boolean).length} words)...`);
 
     try {

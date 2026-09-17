@@ -97,12 +97,21 @@ export async function generateTextWithAI(options: {
       );
     }
 
-    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
-    const modelsToTry = [preferredModel, 'gemini-3.5-flash-lite'];
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
+    const modelsToTry = [
+      ...new Set([
+        preferredModel,
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3-flash-preview',
+        'gemini-3.5-flash',
+      ]),
+    ];
 
     let lastError: Error | null = null;
 
-    for (const model of modelsToTry) {
+    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+      const model = modelsToTry[mIdx];
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
@@ -125,27 +134,49 @@ export async function generateTextWithAI(options: {
           };
         }
 
-        const res = await fetch(url, {
+        let res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          const errMsg =
-            (errData as { error?: { message?: string } })?.error?.message ??
-            res.statusText;
-          if (
-            (res.status === 503 || res.status === 429) &&
-            model !== modelsToTry[modelsToTry.length - 1]
-          ) {
-            console.warn(
-              `[Gemini] ${model} unavailable (${res.status}: ${errMsg}), trying fallback ${modelsToTry[1]}...`
-            );
-            continue;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errData = (await res.json().catch(() => ({}))) as any;
+          const errMsg = errData?.error?.message ?? res.statusText;
+
+          // Check for rate limits or high demand
+          if (res.status === 429 || res.status === 503) {
+            const retryMatch = errMsg.match(/retry in ([0-9.]+)s/i);
+            const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 0;
+
+            // If short wait (<= 6 seconds), sleep and retry this model once
+            if (waitSec > 0 && waitSec <= 6) {
+              console.warn(`[Gemini] ${model} rate limited, waiting ${(waitSec + 1).toFixed(1)}s before retry...`);
+              await new Promise((r) => setTimeout(r, Math.ceil((waitSec + 1) * 1000)));
+              res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+              });
+            }
           }
-          throw new Error(`Gemini API error (${res.status}): ${errMsg}`);
+
+          if (!res.ok) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errData2 = (await res.json().catch(() => ({}))) as any;
+            const errMsg2 = errData2?.error?.message ?? errMsg;
+
+            if (res.status === 429 || res.status === 503) {
+              if (mIdx < modelsToTry.length - 1) {
+                console.warn(
+                  `[Gemini] ${model} quota/rate limited (${res.status}). Cascading to fallback: ${modelsToTry[mIdx + 1]}...`
+                );
+                continue;
+              }
+            }
+            throw new Error(`Gemini API error (${res.status}): ${errMsg2}`);
+          }
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -157,13 +188,17 @@ export async function generateTextWithAI(options: {
         return text;
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
-        if (model !== modelsToTry[modelsToTry.length - 1]) {
+        if (mIdx < modelsToTry.length - 1) {
           continue;
         }
       }
     }
 
-    throw lastError || new Error('Failed to generate content with Gemini.');
+    const friendlyMsg =
+      lastError?.message?.includes('quota') || lastError?.message?.includes('429')
+        ? 'Google Gemini free-tier rate limit reached (15 requests/min or project quota). Please wait 30 seconds before retrying, or upgrade your Google AI Studio plan.'
+        : lastError?.message || 'Failed to generate content with Gemini.';
+    throw new Error(friendlyMsg);
   }
 
   // Anthropic Provider
@@ -207,45 +242,72 @@ export async function transcribeImageWithAI(options: {
       );
     }
 
-    const modelName = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
+    const modelsToTry = [
+      ...new Set([
+        preferredModel,
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3-flash-preview',
+        'gemini-3.5-flash',
+      ]),
+    ];
     const base64Data = options.imageBuffer.toString('base64');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
+    let lastError: Error | null = null;
+
+    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+      const modelName = modelsToTry[mIdx];
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
               {
-                inline_data: {
-                  mime_type: options.mimeType,
-                  data: base64Data,
-                },
+                parts: [
+                  {
+                    inline_data: {
+                      mime_type: options.mimeType,
+                      data: base64Data,
+                    },
+                  },
+                  { text: options.prompt },
+                ],
               },
-              { text: options.prompt },
             ],
-          },
-        ],
-      }),
-    });
+          }),
+        });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      const errMsg =
-        (errData as { error?: { message?: string } })?.error?.message ??
-        res.statusText;
-      throw new Error(`Gemini Vision error (${res.status}): ${errMsg}`);
+        if (!res.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errData = (await res.json().catch(() => ({}))) as any;
+          const errMsg = errData?.error?.message ?? res.statusText;
+          if ((res.status === 429 || res.status === 503) && mIdx < modelsToTry.length - 1) {
+            console.warn(`[Gemini Vision] ${modelName} hit ${res.status}. Trying next model...`);
+            continue;
+          }
+          throw new Error(`Gemini Vision error (${res.status}): ${errMsg}`);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (await res.json()) as any;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error('Gemini Vision returned an empty response.');
+        }
+        return text;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (mIdx < modelsToTry.length - 1) {
+          continue;
+        }
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = (await res.json()) as any;
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      throw new Error('Gemini Vision returned an empty response.');
-    }
-    return text;
+    throw lastError || new Error('Failed to transcribe image with Gemini.');
   }
 
   // Anthropic Provider
