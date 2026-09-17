@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// field names must match /types/index.ts exactly (constitution §7)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Deck {
+  id         String           @id @default(cuid())
+  title      String
+  sourceType String           // 'pdf' | 'text' | 'image'
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  cards      Card[]
+  reviewLogs ReviewLogEntry[]
+}
+
+model Card {
+  id          String           @id @default(cuid())
+  deckId      String
+  deck        Deck             @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  type        String           @default("basic") // 'basic' | 'cloze' | 'mcq'
+  front       String
+  back        String
+  explanation String?
+  options     String?          // JSON-encoded string[] for MCQ; null for basic/cloze
+  // FSRS scheduling fields — match shared Card type in /types/index.ts
+  due         DateTime         @default(now())
+  stability   Float            @default(0)
+  difficulty  Float            @default(5.0) // ts-fsrs D parameter: 1–10 scale
+  lastReviewed DateTime?
+  reps        Int              @default(0)
+  // Internal FSRS bookkeeping — NOT exposed in the shared Card type
+  lapses        Int  @default(0)
+  state         String @default("New") // 'New' | 'Learning' | 'Review' | 'Relearning'
+  scheduledDays Float  @default(0)
+  learningSteps Int    @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  reviewLogs  ReviewLogEntry[]
+}
+
+/// Renamed from ReviewLog to ReviewLogEntry to match /types/index.ts
+model ReviewLogEntry {
+  id               String   @id @default(cuid())
+  cardId           String
+  card             Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  deckId           String
+  deck             Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  rating           String   // 'again' | 'hard' | 'good' | 'easy'
+  confidenceBefore Int?     // 1–5 self-assessment from the UI
+  reviewedAt       DateTime @default(now())
+  scheduledDays    Float    @default(0) // interval scheduled (from ts-fsrs)
+  elapsedDays      Float    @default(0) // actual days since last review
+}
