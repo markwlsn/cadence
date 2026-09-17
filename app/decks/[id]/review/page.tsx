@@ -12,7 +12,7 @@ import {
   recordSessionLog,
 } from '@/lib/data';
 import { CardStack, ConfidenceRater, RatingButtons, ModeToggle } from '@/components/review';
-import { Button, Badge } from '@/components/ui';
+import { Button, Badge, ThemeToggle } from '@/components/ui';
 
 export default function ReviewSessionPage() {
   const params = useParams();
@@ -73,6 +73,24 @@ export default function ReviewSessionPage() {
   const handleFlip = () => {
     setIsFlipped(true);
   };
+
+  // Global spacebar listener to flip card (only when not typing in an input/textarea)
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if (['input', 'textarea'].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
+        return;
+      }
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (!isFlipped) {
+          setIsFlipped(true);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [isFlipped]);
 
   // Select Confidence Before Answer
   const handleConfidenceSelect = (rating: 1 | 2 | 3 | 4 | 5) => {
@@ -185,10 +203,13 @@ export default function ReviewSessionPage() {
           {/* Mode Switcher */}
           <ModeToggle mode={mode} onChange={handleModeChange} />
 
-          {/* Progress badge */}
-          <Badge variant="neutral" size="sm" className="font-mono">
-            {currentIndex + 1} / {cards.length}
-          </Badge>
+          {/* Progress badge & Theme Toggle */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Badge variant="neutral" size="sm" className="font-mono">
+              {currentIndex + 1} / {cards.length}
+            </Badge>
+          </div>
         </div>
 
         {/* Linear progress bar */}

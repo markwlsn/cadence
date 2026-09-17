@@ -6,3 +6,4 @@ export { Badge } from './Badge';
 export { ProgressRing } from './ProgressRing';
 export { VisuallyHidden } from './VisuallyHidden';
 export { OnboardingCheck } from './OnboardingCheck';
+export { ThemeToggle } from './ThemeToggle';

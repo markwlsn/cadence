@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getDecks, getDeckStats } from '@/lib/data';
-import { Badge, ProgressRing, Button, OnboardingCheck } from '@/components/ui';
+import { Badge, ProgressRing, Button, OnboardingCheck, ThemeToggle } from '@/components/ui';
 
 export const revalidate = 0; // Fresh on every navigation
 
@@ -35,6 +35,7 @@ export default async function HomePage() {
             >
               How it works
             </Link>
+            <ThemeToggle />
             <Link href="/decks/new">
               <Button variant="primary" size="sm">
                 + New Deck

@@ -33,8 +33,8 @@ export function CardStack({
   const SWIPE_THRESHOLD = 90;
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Only ignore drag if clicking inner buttons/links (e.g. MCQ options or links)
-    const interactive = (e.target as HTMLElement).closest('button, a, input');
+    // Only ignore drag if clicking inner buttons/links/inputs/textareas/code
+    const interactive = (e.target as HTMLElement).closest('button, a, input, textarea, select, label, pre, code');
     if (interactive) {
       return;
     }
@@ -76,7 +76,7 @@ export function CardStack({
   const swipeOpacity = Math.max(0.6, 1 - Math.abs(dragOffset.x) / 400);
 
   return (
-    <div className="relative w-full max-w-xl mx-auto h-[380px] sm:h-[440px] flex items-center justify-center">
+    <div className="relative w-full max-w-xl mx-auto min-h-[440px] sm:min-h-[490px] h-[450px] sm:h-[490px] flex items-center justify-center">
       {/* Background card peek to convey stack depth */}
       {nextCard && (
         <div

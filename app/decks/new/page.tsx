@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, SegmentedControl } from '@/components/ui';
+import { Button, SegmentedControl, ThemeToggle } from '@/components/ui';
 import { createDeck } from '@/lib/data';
 
 type SourceType = 'pdf' | 'text' | 'image';
@@ -78,7 +78,9 @@ export default function NewDeckPage() {
           <span className="font-semibold text-[16px] text-[var(--color-text)]">
             Create Deck
           </span>
-          <div className="w-12" aria-hidden="true" />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
