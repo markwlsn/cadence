@@ -16,11 +16,14 @@
   "include": [
     "scripts/**/*.ts",
     "lib/**/*.ts",
-    "types/**/*.ts"
+    "types/**/*"
   ],
   "exclude": [
     "node_modules",
     "app",
     "components"
-  ]
+  ],
+  "ts-node": {
+    "files": true
+  }
 }
