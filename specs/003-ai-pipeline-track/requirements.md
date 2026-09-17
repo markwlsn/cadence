@@ -116,3 +116,13 @@ export async function generateCards(chunks: string[], deckId: string): Promise<C
 ```
 
 **Pass criterion:** A TypeScript file that imports these functions and calls them with the above signatures compiles without errors.
+
+---
+
+## Change Log
+
+### 2026-09-17 — Gemini Multi-Provider Integration & Cloze Gate Refinement
+- **Gemini 3.5 Flash Support**: Extended `lib/ai/client.ts` to support both Google Gemini (`gemini-3.5-flash` / `gemini-3.5-flash-lite`) and Anthropic Claude. Automatic provider detection based on `GEMINI_API_KEY` vs `ANTHROPIC_API_KEY`.
+- **Multimodal Transcription**: `parseImage` supports Gemini multimodal vision alongside Claude Vision.
+- **Cloze Quality Gate Harmonization**: Updated `applyQualityGate` to exempt `cloze` key-terms (`back` field containing the missing single-word/phrase term) from verbatim LCS substring false positives against the source chunk.
+- **JSON Parsing Resilience**: Added `extractJsonArray` safely slicing array brackets `[...]` to tolerate extraneous commentary from LLMs.
