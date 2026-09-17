@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDeck, getDeckStats, getDeckCards } from '@/lib/data';
-import { Badge, ProgressRing, Button, ThemeToggle } from '@/components/ui';
+import { Badge, ProgressRing, Button, Navbar } from '@/components/ui';
 
 interface DeckDashboardProps {
   params: Promise<{ id: string }>;
@@ -33,23 +33,7 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
-      {/* Top Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] flex items-center gap-1 transition-colors"
-          >
-            ← All Decks
-          </Link>
-          <span className="font-semibold text-[15px] text-[var(--color-text)] truncate max-w-[200px] sm:max-w-md">
-            {deck.title}
-          </span>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 sm:py-12">

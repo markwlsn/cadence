@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, SegmentedControl, ThemeToggle } from '@/components/ui';
+import { Button, SegmentedControl, Navbar } from '@/components/ui';
 import { createDeck } from '@/lib/data';
 
 type SourceType = 'pdf' | 'text' | 'image';
@@ -66,23 +66,7 @@ export default function NewDeckPage() {
 
   return (
     <div className="min-h-dvh flex flex-col">
-      {/* Navigation Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] flex items-center gap-1 transition-colors"
-          >
-            ← Cancel
-          </Link>
-          <span className="font-semibold text-[16px] text-[var(--color-text)]">
-            Create Deck
-          </span>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Form Content */}
       <main className="flex-1 max-w-2xl mx-auto w-full p-6 sm:p-10 flex flex-col justify-center">

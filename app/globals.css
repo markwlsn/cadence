@@ -229,6 +229,47 @@ body {
   animation: count-up var(--duration-base) var(--ease-standard) both;
 }
 
+/* ─── Star Pop-In Animation ─────────────────────────────────────────────────── */
+
+@keyframes star-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-20deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.25) rotate(6deg);
+  }
+  80% {
+    transform: scale(0.92) rotate(-3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-star-pop {
+  animation: star-pop 0.5s var(--ease-spring) both;
+}
+
+/* ─── Fade Slide Up ─────────────────────────────────────────────────────────── */
+
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-up {
+  animation: fade-slide-up var(--duration-slow) var(--ease-standard) both;
+}
+
 /* ─── Bottom Sheet ──────────────────────────────────────────────────────────── */
 
 .bottom-sheet-overlay {
