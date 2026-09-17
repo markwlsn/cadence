@@ -1,34 +1,56 @@
 /**
  * /lib/ai/client.ts
  *
- * Anthropic SDK singleton — server-side ONLY.
+ * Multi-provider AI client (Gemini + Anthropic) — server-side ONLY.
  * ⚠️  Never import this file from client-side code.
- *     The API key must never be exposed to the browser.
+ *     API keys must never be exposed to the browser.
  *
  * Usage:
- *   import { anthropic, GENERATION_MODEL, VISION_MODEL } from '@/lib/ai/client';
+ *   import { generateTextWithAI, transcribeImageWithAI, isAIConfigured } from '@/lib/ai/client';
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 
-let _client: Anthropic | null = null;
+export type AIProvider = 'gemini' | 'anthropic';
+
+/**
+ * Determine which provider to use based on env configuration.
+ * Defaults to Gemini if GEMINI_API_KEY is present, else Anthropic.
+ */
+export function getAIProvider(): AIProvider {
+  if (process.env.AI_PROVIDER === 'anthropic') return 'anthropic';
+  if (process.env.AI_PROVIDER === 'gemini') return 'gemini';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
+  return 'gemini';
+}
+
+/** Check if at least one valid AI provider key is set. */
+export function isAIConfigured(): boolean {
+  return Boolean(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
+}
+
+// ---------------------------------------------------------------------------
+// Anthropic SDK Singleton (Backward Compatibility)
+// ---------------------------------------------------------------------------
+
+let _anthropicClient: Anthropic | null = null;
 
 export function getAnthropic(): Anthropic {
-  if (!_client) {
+  if (!_anthropicClient) {
     if (!process.env.ANTHROPIC_API_KEY) {
       throw new Error(
         '[Cadence] ANTHROPIC_API_KEY is not set. ' +
-        'Add it to .env.local before running server-side code or the test pipeline.'
+        'Add GEMINI_API_KEY or ANTHROPIC_API_KEY to .env.local.'
       );
     }
-    _client = new Anthropic({
+    _anthropicClient = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
   }
-  return _client;
+  return _anthropicClient;
 }
 
-/** Singleton Anthropic client proxy. Reuse across requests and lazily validate key on access. */
 export const anthropic = new Proxy({} as Anthropic, {
   get(_target, prop, receiver) {
     const client = getAnthropic();
@@ -37,16 +59,235 @@ export const anthropic = new Proxy({} as Anthropic, {
   },
 });
 
-/**
- * Model used for card generation (highest-quality reasoning).
- * Override with ANTHROPIC_MODEL env var.
- */
 export const GENERATION_MODEL: string =
   process.env.ANTHROPIC_MODEL ?? 'claude-opus-4-5';
 
-/**
- * Model used for vision-based image transcription.
- * Override with ANTHROPIC_VISION_MODEL env var.
- */
 export const VISION_MODEL: string =
   process.env.ANTHROPIC_VISION_MODEL ?? 'claude-opus-4-5';
+
+export const GEMINI_MODEL: string =
+  process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
+
+// ---------------------------------------------------------------------------
+// Unified Generation Interface
+// ---------------------------------------------------------------------------
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Generate a text completion from either Gemini or Claude.
+ */
+export async function generateTextWithAI(options: {
+  systemPrompt: string;
+  messages: ChatMessage[];
+  maxTokens?: number;
+  jsonMode?: boolean;
+}): Promise<string> {
+  const provider = getAIProvider();
+
+  if (provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+        'Please add your API key to .env.local.'
+      );
+    }
+
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
+    const modelsToTry = [preferredModel, 'gemini-3.5-flash-lite'];
+
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const contents = options.messages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        }));
+
+        const body: Record<string, unknown> = {
+          system_instruction: {
+            parts: [{ text: options.systemPrompt }],
+          },
+          contents,
+        };
+
+        if (options.jsonMode) {
+          body.generationConfig = {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          };
+        }
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg =
+            (errData as { error?: { message?: string } })?.error?.message ??
+            res.statusText;
+          if (
+            (res.status === 503 || res.status === 429) &&
+            model !== modelsToTry[modelsToTry.length - 1]
+          ) {
+            console.warn(
+              `[Gemini] ${model} unavailable (${res.status}: ${errMsg}), trying fallback ${modelsToTry[1]}...`
+            );
+            continue;
+          }
+          throw new Error(`Gemini API error (${res.status}): ${errMsg}`);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = (await res.json()) as any;
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error('Gemini returned an empty response.');
+        }
+        return text;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (model !== modelsToTry[modelsToTry.length - 1]) {
+          continue;
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to generate content with Gemini.');
+  }
+
+  // Anthropic Provider
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error(
+      '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+      'Please add your API key to .env.local.'
+    );
+  }
+
+  const client = getAnthropic();
+  const response = await client.messages.create({
+    model: GENERATION_MODEL,
+    max_tokens: options.maxTokens ?? 4096,
+    system: options.systemPrompt,
+    messages: options.messages,
+  });
+
+  return response.content
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as { type: 'text'; text: string }).text)
+    .join('');
+}
+
+/**
+ * Transcribe an image using multimodal AI (Gemini or Claude Vision).
+ */
+export async function transcribeImageWithAI(options: {
+  imageBuffer: Buffer;
+  mimeType: string;
+  prompt: string;
+}): Promise<string> {
+  const provider = getAIProvider();
+
+  if (provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+        'Please add your API key to .env.local.'
+      );
+    }
+
+    const modelName = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
+    const base64Data = options.imageBuffer.toString('base64');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                inline_data: {
+                  mime_type: options.mimeType,
+                  data: base64Data,
+                },
+              },
+              { text: options.prompt },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const errMsg =
+        (errData as { error?: { message?: string } })?.error?.message ??
+        res.statusText;
+      throw new Error(`Gemini Vision error (${res.status}): ${errMsg}`);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await res.json()) as any;
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      throw new Error('Gemini Vision returned an empty response.');
+    }
+    return text;
+  }
+
+  // Anthropic Provider
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error(
+      '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+      'Please add your API key to .env.local.'
+    );
+  }
+
+  const client = getAnthropic();
+  const base64Data = options.imageBuffer.toString('base64');
+  const response = await client.messages.create({
+    model: VISION_MODEL,
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: options.mimeType as
+                | 'image/jpeg'
+                | 'image/png'
+                | 'image/gif'
+                | 'image/webp',
+              data: base64Data,
+            },
+          },
+          {
+            type: 'text',
+            text: options.prompt,
+          },
+        ],
+      },
+    ],
+  });
+
+  return response.content
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as { type: 'text'; text: string }).text)
+    .join('');
+}

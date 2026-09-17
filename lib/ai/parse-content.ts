@@ -10,7 +10,7 @@
  *   parseImage(imageBuffer: Buffer, mimeType: string): Promise<string>
  */
 
-import { anthropic, VISION_MODEL } from './client';
+import { transcribeImageWithAI } from './client';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -228,42 +228,16 @@ export async function parseImage(
     );
   }
 
-  const base64Data = imageBuffer.toString('base64');
-
-  const response = await anthropic.messages.create({
-    model: VISION_MODEL,
-    max_tokens: 4096,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-              data: base64Data,
-            },
-          },
-          {
-            type: 'text',
-            text:
-              'Transcribe all text visible in this image exactly as written. ' +
-              'Preserve the document structure using Markdown: ' +
-              'use # for main headings, ## for subheadings, - for bullet lists, ' +
-              '**bold** for emphasis, and ` backticks ` for inline equations or code. ' +
-              'If you see a diagram, describe it in a [Diagram: ...] block, ' +
-              'then transcribe any labels or annotations. ' +
-              'Do not add commentary or explanations — transcribe only.',
-          },
-        ],
-      },
-    ],
+  return transcribeImageWithAI({
+    imageBuffer,
+    mimeType,
+    prompt:
+      'Transcribe all text visible in this image exactly as written. ' +
+      'Preserve the document structure using Markdown: ' +
+      'use # for main headings, ## for subheadings, - for bullet lists, ' +
+      '**bold** for emphasis, and ` backticks ` for inline equations or code. ' +
+      'If you see a diagram, describe it in a [Diagram: ...] block, ' +
+      'then transcribe any labels or annotations. ' +
+      'Do not add commentary or explanations — transcribe only.',
   });
-
-  const block = response.content[0];
-  if (block.type !== 'text') {
-    throw new Error('[parseImage] Unexpected response type from Claude vision API.');
-  }
-  return block.text;
 }

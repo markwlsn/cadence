@@ -12,7 +12,7 @@
  */
 
 import type { Card, CardPayload, CardType } from '@/types/index';
-import { anthropic, GENERATION_MODEL } from './client';
+import { generateTextWithAI, isAIConfigured } from './client';
 import { checkOverlap } from './quality-check';
 
 // ---------------------------------------------------------------------------
@@ -107,12 +107,17 @@ interface RawCardCandidate {
   options?: unknown;
 }
 
-function stripFences(raw: string): string {
-  // Remove optional ```json ... ``` or ``` ... ``` wrappers
-  return raw
+function extractJsonArray(raw: string): string {
+  const stripped = raw
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
+  const start = stripped.indexOf('[');
+  const end = stripped.lastIndexOf(']');
+  if (start !== -1 && end !== -1 && end > start) {
+    return stripped.slice(start, end + 1);
+  }
+  return stripped;
 }
 
 interface ValidationResult {
@@ -139,33 +144,38 @@ function validateCardArray(parsed: unknown): ValidationResult {
     if (typeof raw.back !== 'string' || raw.back.trim() === '') {
       cardIssues.push('missing or empty "back"');
     }
-    if (!['basic', 'cloze', 'mcq'].includes(raw.type as string)) {
-      cardIssues.push(`invalid "type": ${JSON.stringify(raw.type)} (must be "basic", "cloze", or "mcq")`);
+    if (
+      typeof raw.type !== 'string' ||
+      !['basic', 'cloze', 'mcq'].includes(raw.type)
+    ) {
+      cardIssues.push('invalid "type" — must be basic, cloze, or mcq');
     }
     if (
       typeof raw.explanation !== 'string' ||
-      raw.explanation.trim().split(/\s+/).filter(Boolean).length < 10
+      raw.explanation.trim().split(/\s+/).length < 10
     ) {
-      cardIssues.push('"explanation" must be a string of at least 10 words');
+      cardIssues.push(
+        '"explanation" must be non-empty and at least 10 words (R-04)'
+      );
     }
     if (raw.type === 'mcq') {
-      if (!Array.isArray(raw.options) || raw.options.length < 3) {
-        cardIssues.push('"options" must be an array of at least 3 items for mcq cards');
+      if (!Array.isArray(raw.options) || raw.options.length < 3 || raw.options.length > 4) {
+        cardIssues.push('"mcq" card must have 3–4 items in "options" array (R-03)');
+      } else if (!raw.options.every((o) => typeof o === 'string' && o.trim() !== '')) {
+        cardIssues.push('all "options" must be non-empty strings');
       }
     }
 
-    if (cardIssues.length > 0) {
-      issues.push(`Card ${i + 1}: ${cardIssues.join('; ')}.`);
-    } else {
+    if (cardIssues.length === 0) {
       valid.push({
         front: (raw.front as string).trim(),
         back: (raw.back as string).trim(),
         type: raw.type as CardType,
         explanation: (raw.explanation as string).trim(),
-        options: Array.isArray(raw.options)
-          ? (raw.options as unknown[]).map(String)
-          : undefined,
+        options: raw.type === 'mcq' ? (raw.options as string[]).map((o) => o.trim()) : undefined,
       });
+    } else {
+      issues.push(`Card ${i + 1}: ${cardIssues.join(', ')}`);
     }
   }
 
@@ -173,7 +183,7 @@ function validateCardArray(parsed: unknown): ValidationResult {
 }
 
 // ---------------------------------------------------------------------------
-// Quality gate application (R-01)
+// Retrieval-practice quality gate (R-01)
 // ---------------------------------------------------------------------------
 
 interface GateResult {
@@ -186,6 +196,13 @@ function applyQualityGate(cards: CardPayload[], sourceChunk: string): GateResult
   const failed: { card: CardPayload; lcsRatio: number }[] = [];
 
   for (const card of cards) {
+    // Cloze cards: the back is the missing term from the sentence.
+    // Testing LCS against the chunk for a 1-word answer will always yield 1.0 (false positive).
+    if (card.type === 'cloze') {
+      passed.push(card);
+      continue;
+    }
+
     const result = checkOverlap(card.back, sourceChunk);
     if (result.pass) {
       passed.push(card);
@@ -227,24 +244,19 @@ async function generateCardsForChunk(chunk: string): Promise<CardPayload[]> {
             { role: 'user', content: userPrompt },
           ];
 
-    const response = await anthropic.messages.create({
-      model: GENERATION_MODEL,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+    const rawText = await generateTextWithAI({
+      systemPrompt: SYSTEM_PROMPT,
       messages,
+      maxTokens: 4096,
+      jsonMode: true,
     });
-
-    const rawText = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { type: 'text'; text: string }).text)
-      .join('');
 
     lastResponse = rawText;
 
     // Parse JSON
     let parsed: unknown;
     try {
-      parsed = JSON.parse(stripFences(rawText));
+      parsed = JSON.parse(extractJsonArray(rawText));
     } catch (err) {
       previousIssues = [
         `Response is not valid JSON. Parse error: ${err instanceof Error ? err.message : String(err)}`,
@@ -342,10 +354,10 @@ export async function generateCards(
   chunks: string[],
   deckId: string
 ): Promise<Card[]> {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!isAIConfigured()) {
     throw new Error(
-      '[generate-cards] ANTHROPIC_API_KEY is not configured. ' +
-      'Please configure it in .env.local to generate real flashcards.'
+      '[generate-cards] No AI provider configured (neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured). ' +
+      'Please configure GEMINI_API_KEY or ANTHROPIC_API_KEY in .env.local to generate real flashcards.'
     );
   }
 
