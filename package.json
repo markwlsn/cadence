@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
     "test:pipeline": "ts-node --project tsconfig.scripts.json scripts/test-pipeline.ts",
     "test:unit": "ts-node --project tsconfig.scripts.json scripts/test-unit.ts"
   },
@@ -40,5 +43,8 @@
     "@prisma/client@6.19.3": true,
     "prisma@6.19.3": true,
     "@prisma/engines@6.19.3": true
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
