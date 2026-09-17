@@ -171,8 +171,10 @@ export async function parseContent(rawText: string): Promise<string[]> {
     }
   }
 
-  // Step 5: Drop noise chunks
-  return sized.filter((c) => wordCount(c) >= MIN_CHUNK_WORDS);
+  // Step 5: Drop noise chunks (fallback to raw paragraphs if text is short)
+  const filtered = sized.filter((c) => wordCount(c) >= MIN_CHUNK_WORDS);
+  if (filtered.length > 0) return filtered;
+  return rawText.split('\n\n').map((s) => s.trim()).filter(Boolean);
 }
 
 // ---------------------------------------------------------------------------
