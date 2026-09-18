@@ -9,11 +9,16 @@ import { getUserStats } from '@/lib/gamification';
 import type { User } from '@/lib/auth';
 import type { UserStats } from '@/lib/gamification';
 
-const NAV_LINKS = [
+const DESKTOP_NAV_LINKS = [
   { label: 'Dashboard', href: '/' },
   { label: 'My Decks', href: '/#decks-section', isAnchor: true },
-  { label: 'New Deck', href: '/decks/new' },
-  { label: 'Profile', href: '/profile' },
+];
+
+const MOBILE_NAV_LINKS = [
+  { label: 'Dashboard', href: '/' },
+  { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+  { label: '+ Create New Deck', href: '/decks/new' },
+  { label: 'Profile & Achievements', href: '/profile' },
 ];
 
 export function Navbar() {
@@ -92,7 +97,7 @@ export function Navbar() {
           className="hidden md:flex items-center gap-1"
           aria-label="Primary navigation"
         >
-          {NAV_LINKS.map((link) => (
+          {DESKTOP_NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -161,7 +166,11 @@ export function Navbar() {
             href="/profile"
             aria-label="Go to profile"
             title={user?.name || 'Profile'}
-            className="w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full flex items-center justify-center overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors shrink-0 font-semibold text-[var(--color-text-secondary)] text-[15px]"
+            className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full flex items-center justify-center overflow-hidden bg-[var(--color-surface)] border transition-all shrink-0 font-semibold text-[var(--color-text-secondary)] text-[15px] ${
+              pathname === '/profile'
+                ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/30'
+                : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+            }`}
           >
             {mounted && isEmoji ? (
               <span className="text-[20px] leading-none">{user?.avatar}</span>
@@ -208,7 +217,7 @@ export function Navbar() {
               </span>
             </div>
           )}
-          {NAV_LINKS.map((link) => (
+          {MOBILE_NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
