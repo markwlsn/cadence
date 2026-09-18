@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDeck, getDeckStats, getDeckCards } from '@/lib/data';
-import { Badge, ProgressRing, Button, Navbar } from '@/components/ui';
+import { Badge, ProgressRing, Button, Navbar, BackButton } from '@/components/ui';
 import DeckManageActions from './_components/DeckManageActions';
 
 interface DeckDashboardProps {
@@ -38,6 +38,15 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
 
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 sm:py-12">
+        {/* Breadcrumb & Back navigation */}
+        <div className="flex items-center gap-2 mb-6">
+          <BackButton href="/" label="Dashboard" />
+          <span className="text-[var(--color-text-tertiary)] text-[13px]">/</span>
+          <span className="text-[13px] font-medium text-[var(--color-text-secondary)] truncate max-w-[200px] sm:max-w-md">
+            {deck.title}
+          </span>
+        </div>
+
         {/* Title and Action Banner */}
         <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-8 border-b border-[var(--color-border)]">
           <div>

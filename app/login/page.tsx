@@ -1,10 +1,10 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginUser, continueAsGuest } from '@/lib/auth';
-import { ThemeToggle } from '@/components/ui';
+import { ThemeToggle, BackButton } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -107,11 +107,12 @@ export default function LoginPage() {
 
       {/* Right Form Panel */}
       <div className="flex-1 flex flex-col min-h-dvh relative">
-        <div className="absolute top-5 right-5 z-10">
+        <header className="w-full flex items-center justify-between px-6 sm:px-8 pt-6 z-10">
+          <BackButton href="/" label="Back to Home" />
           <ThemeToggle />
-        </div>
+        </header>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-16 max-w-md mx-auto w-full">
+        <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md mx-auto w-full">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <div className="w-8 h-8 rounded-[10px] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[16px]">

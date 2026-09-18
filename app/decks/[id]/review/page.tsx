@@ -166,14 +166,17 @@ export default function ReviewSessionPage() {
             ? 'No cards are due right now in Mastery mode. Switch to Cram mode if you want to review all cards right away.'
             : 'Add notes or cards to start reviewing.'}
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           {mode === 'mastery' && (
             <Button variant="primary" onClick={() => handleModeChange('cram')}>
               Switch to Cram Mode
             </Button>
           )}
           <Link href={`/decks/${deckId}`}>
-            <Button variant="secondary">Back to Dashboard</Button>
+            <Button variant="secondary">Back to Deck</Button>
+          </Link>
+          <Link href="/">
+            <Button variant="ghost">Dashboard</Button>
           </Link>
         </div>
       </div>
@@ -187,13 +190,16 @@ export default function ReviewSessionPage() {
       {/* Top Header */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Link
               href={`/decks/${deckId}`}
-              aria-label="Exit review session"
-              className="text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] flex items-center gap-1 transition-colors"
+              aria-label="Back to deck"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-sm)] text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors"
             >
-              ✕ Exit
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              <span>Deck</span>
             </Link>
             <span className="hidden sm:inline-block text-[13px] text-[var(--color-text-tertiary)] truncate max-w-[140px]">
               · {deckTitle}

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { registerUser, continueAsGuest, AVATAR_OPTIONS } from '@/lib/auth';
-import { ThemeToggle } from '@/components/ui';
+import { ThemeToggle, BackButton } from '@/components/ui';
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string; level: number } {
   if (password.length === 0) return { label: '', color: '', width: '0%', level: 0 };
@@ -101,12 +101,13 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
-      {/* Theme toggle */}
-      <div className="absolute top-5 right-5 z-10">
+      {/* Top navigation header */}
+      <header className="w-full max-w-xl mx-auto px-6 pt-6 flex items-center justify-between z-10">
+        <BackButton href="/" label="Back to Home" />
         <ThemeToggle />
-      </div>
+      </header>
 
-      <div className="flex-1 flex flex-col justify-center px-6 py-16">
+      <div className="flex-1 flex flex-col justify-center px-6 py-10">
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-10">

@@ -11,7 +11,8 @@ import type { UserStats } from '@/lib/gamification';
 
 const NAV_LINKS = [
   { label: 'Dashboard', href: '/' },
-  { label: 'My Decks', href: '#decks-section', isAnchor: true },
+  { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+  { label: 'New Deck', href: '/decks/new' },
   { label: 'Profile', href: '/profile' },
 ];
 
@@ -44,18 +45,19 @@ export function Navbar() {
   }, []);
 
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href.startsWith('#')) {
+    if (pathname === '/') {
       e.preventDefault();
-      const el = document.getElementById(href.slice(1));
+      const targetId = href.replace('/#', '').replace('#', '');
+      const el = document.getElementById(targetId);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
-      setMobileOpen(false);
     }
+    setMobileOpen(false);
   };
 
   const isActive = (href: string) => {
-    if (href.startsWith('#')) return false;
+    if (href === '/#decks-section') return false;
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
@@ -122,11 +124,33 @@ export function Navbar() {
           {/* XP Level Pill */}
           {mounted && stats !== null && (
             <span
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[12px] font-semibold"
+              className="hidden lg:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[12px] font-semibold"
               title={`Level ${stats.level}: ${stats.title} — ${stats.xp} XP`}
             >
               ⚡ Lv.{stats.level} · {stats.xp} XP
             </span>
+          )}
+
+          {/* Quick Action: New Deck */}
+          <Link
+            href="/decks/new"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:bg-[var(--color-accent-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
+            title="Create a new flashcard deck"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>New Deck</span>
+          </Link>
+
+          {/* Guest Sign In Link */}
+          {mounted && user?.isGuest && (
+            <Link
+              href="/login"
+              className="hidden md:inline-block text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors px-2 py-1"
+            >
+              Sign In
+            </Link>
           )}
 
           {/* Theme Toggle */}
@@ -195,13 +219,33 @@ export function Navbar() {
               className={[
                 'px-3 py-2.5 rounded-[var(--radius-sm)] text-[15px] font-medium transition-colors',
                 isActive(link.href)
-                  ? 'text-[var(--color-accent)] bg-[var(--color-accent)]/8'
+                  ? 'text-[var(--color-accent)] bg-[var(--color-accent)]/8 font-semibold'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)]',
               ].join(' ')}
             >
               {link.label}
             </Link>
           ))}
+
+          {/* Guest Sign In / Register Prompt in Mobile Menu */}
+          {mounted && user?.isGuest && (
+            <div className="pt-3 mt-1 border-t border-[var(--color-border)] flex gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex-1 py-2 text-center text-[14px] font-medium rounded-[var(--radius-sm)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setMobileOpen(false)}
+                className="flex-1 py-2 text-center text-[14px] font-semibold rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+              >
+                Register
+              </Link>
+            </div>
+          )}
         </nav>
       )}
     </header>

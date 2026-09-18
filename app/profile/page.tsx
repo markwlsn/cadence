@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser, updateUserProfile, logoutUser, deleteAccountAndData, AVATAR_OPTIONS, type User } from '@/lib/auth';
 import { getUserStats, updateDailyGoal, ALL_BADGES, getLevelDetails, type UserStats } from '@/lib/gamification';
-import { ThemeToggle } from '@/components/ui';
+import { ThemeToggle, BackButton } from '@/components/ui';
 
 const GOAL_OPTIONS = [10, 20, 30] as const;
 
@@ -106,15 +106,7 @@ export default function ProfilePage() {
       {/* Top header */}
       <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <Link
-            href="/"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors"
-            aria-label="Back to home"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
-            </svg>
-          </Link>
+          <BackButton href="/" label="Dashboard" />
           <h1 className="text-[17px] font-semibold text-[var(--color-text)]">Profile</h1>
           <ThemeToggle />
         </div>

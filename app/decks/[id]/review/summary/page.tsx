@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -247,15 +247,23 @@ export default function SessionSummaryPage() {
       <header className="flex items-center justify-between pt-4">
         <Link
           href={`/decks/${deckId}`}
-          className="text-[14px] transition-colors"
-          style={{ color: 'var(--color-text-secondary)' }}
+          className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          aria-label="Back to deck"
         >
-          ✕ Close
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          <span>Back to Deck</span>
         </Link>
         <Badge variant="success" size="sm" className="capitalize">
           {summary.mode} Session Complete
         </Badge>
-        <div className="w-8" aria-hidden="true" />
+        <Link
+          href="/"
+          className="text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+        >
+          Dashboard
+        </Link>
       </header>
 
       {/* Stars hero */}
@@ -337,6 +345,11 @@ export default function SessionSummaryPage() {
           <Link href={`/decks/${deckId}`} className="flex-1">
             <Button variant="secondary" size="lg" fullWidth>
               Back to Deck
+            </Button>
+          </Link>
+          <Link href="/" className="flex-1">
+            <Button variant="secondary" size="lg" fullWidth>
+              Dashboard
             </Button>
           </Link>
         </div>

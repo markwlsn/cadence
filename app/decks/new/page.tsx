@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, SegmentedControl, Navbar } from '@/components/ui';
+import { Button, SegmentedControl, Navbar, BackButton } from '@/components/ui';
 import { createDeck } from '@/lib/data';
 
 type SourceType = 'pdf' | 'text' | 'image';
@@ -87,6 +87,9 @@ export default function NewDeckPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-8">
             <div>
+              <div className="mb-4">
+                <BackButton href="/" label="Dashboard" />
+              </div>
               <h1 className="text-[28px] sm:text-[32px] font-bold tracking-tight text-[var(--color-text)] mb-2">
                 New Study Deck
               </h1>
@@ -229,16 +232,28 @@ export default function NewDeckPage() {
             )}
 
             {/* Submit Action */}
-            <div className="pt-4">
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={!title.trim() || (sourceType === 'text' ? !pastedText.trim() : !file)}
-              >
-                Generate Flashcards
-              </Button>
+            <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
+              <Link href="/" className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  fullWidth
+                >
+                  Cancel
+                </Button>
+              </Link>
+              <div className="flex-1 w-full">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  disabled={!title.trim() || (sourceType === 'text' ? !pastedText.trim() : !file)}
+                >
+                  Generate Flashcards
+                </Button>
+              </div>
             </div>
           </form>
         )}
