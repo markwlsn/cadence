@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAge, setEditAge] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🎓');
   const [selectedGoal, setSelectedGoal] = useState<number>(20);
   const [isSaving, setIsSaving] = useState(false);
@@ -28,6 +30,8 @@ export default function ProfilePage() {
     setUser(currentUser);
     setStats(currentStats);
     setEditName(currentUser.name);
+    setEditPhone(currentUser.phone || '');
+    setEditAge(currentUser.age !== undefined ? String(currentUser.age) : '');
     setSelectedAvatar(currentUser.avatar);
     setSelectedGoal(currentStats.dailyGoal);
   }, []);
@@ -37,7 +41,13 @@ export default function ProfilePage() {
     setIsSaving(true);
     setSaveSuccess(false);
     try {
-      const updated = updateUserProfile({ name: editName.trim() || user.name, avatar: selectedAvatar });
+      const parsedAge = editAge.trim() ? Number(editAge) : undefined;
+      const updated = updateUserProfile({
+        name: editName.trim() || user.name,
+        avatar: selectedAvatar,
+        phone: editPhone.trim() || undefined,
+        age: parsedAge && !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : undefined,
+      });
       updateDailyGoal(selectedGoal);
       setUser(updated);
       setSaveSuccess(true);
@@ -286,6 +296,83 @@ export default function ProfilePage() {
                   {emoji}
                 </button>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Student & Demographic Information ──────────────────── */}
+        <section className="mt-8">
+          <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-3">
+            Personal & Demographic Details
+          </h2>
+          <div
+            className="p-4 rounded-[var(--radius-md)] flex flex-col gap-4"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+          >
+            {/* Email (read-only) */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="profile-email" className="text-[12px] font-medium text-[var(--color-text-secondary)]">
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  id="profile-email"
+                  type="email"
+                  value={user.email || 'Guest Scholar (No email linked)'}
+                  disabled
+                  className="w-full h-11 px-3.5 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-[16px] cursor-not-allowed opacity-80"
+                />
+                {user.isGuest ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                    Guest Session
+                  </span>
+                ) : (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    Registered Account
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Phone & Age grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Phone */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="profile-phone" className="text-[12px] font-medium text-[var(--color-text-secondary)]">
+                  Phone Number
+                </label>
+                <input
+                  id="profile-phone"
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
+                  className="w-full h-11 px-3.5 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
+                  style={{ boxShadow: 'none' }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
+                />
+              </div>
+
+              {/* Age */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="profile-age" className="text-[12px] font-medium text-[var(--color-text-secondary)]">
+                  Age
+                </label>
+                <input
+                  id="profile-age"
+                  type="number"
+                  min={5}
+                  max={120}
+                  value={editAge}
+                  onChange={(e) => setEditAge(e.target.value)}
+                  placeholder="e.g. 20"
+                  className="w-full h-11 px-3.5 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
+                  style={{ boxShadow: 'none' }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
+                />
+              </div>
             </div>
           </div>
         </section>

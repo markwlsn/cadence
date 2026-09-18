@@ -9,6 +9,8 @@ export interface User {
   id: string;
   name: string;
   email?: string;
+  phone?: string;
+  age?: number;
   avatar: string;
   isGuest: boolean;
   createdAt: string;
@@ -105,11 +107,16 @@ export async function registerUser(
   name: string,
   email: string,
   pass: string,
-  avatar?: string
+  avatar?: string,
+  phone?: string,
+  age?: number
 ): Promise<{ success: boolean; error?: string; user?: User }> {
   if (!name.trim()) return { success: false, error: 'Please enter your name.' };
   if (!email.trim() || !email.includes('@')) return { success: false, error: 'Please enter a valid email address.' };
   if (pass.length < 6) return { success: false, error: 'Password must be at least 6 characters long.' };
+  if (age !== undefined && !isNaN(age) && (age < 5 || age > 120)) {
+    return { success: false, error: 'Please enter a realistic age between 5 and 120.' };
+  }
 
   try {
     const rawUsers = localStorage.getItem(USERS_DB_KEY);
@@ -124,6 +131,8 @@ export async function registerUser(
       id: 'usr_' + Math.random().toString(36).substring(2, 9),
       name: name.trim(),
       email: cleanEmail,
+      phone: phone?.trim() || undefined,
+      age: age !== undefined && !isNaN(age) && age > 0 ? Number(age) : undefined,
       avatar: avatar || '🎓',
       isGuest: false,
       createdAt: new Date().toISOString(),
@@ -165,14 +174,16 @@ export async function convertGuestToPermanent(
   name: string,
   email: string,
   pass: string,
-  avatar?: string
+  avatar?: string,
+  phone?: string,
+  age?: number
 ): Promise<{ success: boolean; error?: string; user?: User }> {
-  const res = await registerUser(name, email, pass, avatar);
+  const res = await registerUser(name, email, pass, avatar, phone, age);
   return res;
 }
 
 /**
- * Update user details (name, avatar)
+ * Update user details (name, avatar, phone, age)
  */
 export function updateUserProfile(updates: Partial<User>): User {
   const current = getCurrentUser();
@@ -181,6 +192,26 @@ export function updateUserProfile(updates: Partial<User>): User {
     ...updates,
   };
   saveCurrentUser(updated);
+
+  if (typeof window !== 'undefined' && !updated.isGuest && updated.email) {
+    try {
+      const rawUsers = localStorage.getItem(USERS_DB_KEY);
+      if (rawUsers) {
+        const users: Record<string, User & { passwordHash: string }> = JSON.parse(rawUsers);
+        const cleanEmail = updated.email.toLowerCase().trim();
+        if (users[cleanEmail]) {
+          users[cleanEmail] = {
+            ...users[cleanEmail],
+            ...updated,
+          };
+          localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to sync profile updates to local database:', e);
+    }
+  }
+
   return updated;
 }
 

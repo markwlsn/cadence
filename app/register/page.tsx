@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -23,21 +23,59 @@ export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [age, setAge] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('🎓');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
   const strength = getPasswordStrength(password);
+  const isMatch = confirmPassword.length > 0 && password === confirmPassword;
+  const isMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!name.trim()) {
+      setError('Please enter your name.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (age.trim()) {
+      const ageNum = Number(age);
+      if (isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
+        setError('Please enter a realistic age between 5 and 120.');
+        return;
+      }
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter your password.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const result = await registerUser(name, email, password, selectedAvatar);
+      const result = await registerUser(
+        name,
+        email,
+        password,
+        selectedAvatar,
+        phone.trim() || undefined,
+        age.trim() ? Number(age) : undefined
+      );
       if (result.success) {
         router.push('/');
       } else {
@@ -92,7 +130,7 @@ export default function RegisterPage() {
             {/* Name */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="name" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Your Name
+                Full Name
               </label>
               <input
                 id="name"
@@ -112,7 +150,7 @@ export default function RegisterPage() {
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="reg-email" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Email
+                Email Address
               </label>
               <input
                 id="reg-email"
@@ -129,10 +167,58 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password + strength */}
+            {/* Demographic Info: Phone & Age in 2-col grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Phone */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="reg-phone" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    Phone
+                  </label>
+                  <span className="text-[11px] text-[var(--color-text-tertiary)] lowercase font-normal">optional</span>
+                </div>
+                <input
+                  id="reg-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
+                  className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
+                  style={{ boxShadow: 'none' }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
+                />
+              </div>
+
+              {/* Age */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="reg-age" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    Age
+                  </label>
+                  <span className="text-[11px] text-[var(--color-text-tertiary)] lowercase font-normal">optional</span>
+                </div>
+                <input
+                  id="reg-age"
+                  type="number"
+                  min={5}
+                  max={120}
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="e.g. 20"
+                  className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
+                  style={{ boxShadow: 'none' }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
+                />
+              </div>
+            </div>
+
+            {/* Enter Password + Password Meter */}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="reg-password" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Password
+                Enter Password
               </label>
               <div className="relative">
                 <input
@@ -169,18 +255,105 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              {/* Password strength bar */}
+              {/* Password strength meter */}
               {password.length > 0 && (
                 <div className="flex flex-col gap-1.5 mt-1">
-                  <div className="h-1.5 w-full rounded-full bg-[var(--color-surface)] overflow-hidden">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-[var(--color-text-tertiary)]">Password strength</span>
+                    <span className="font-semibold" style={{ color: strength.color }}>
+                      {strength.label}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{ width: strength.width, backgroundColor: strength.color }}
                     />
                   </div>
-                  <span className="text-[12px] font-medium" style={{ color: strength.color }}>
-                    {strength.label}
-                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Re-enter Password + Match Indicator */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="reg-confirm-password" className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                Re-enter Password
+              </label>
+              <div className="relative">
+                <input
+                  id="reg-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter your password"
+                  className="w-full h-12 px-4 pr-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
+                  style={{
+                    boxShadow: 'none',
+                    borderColor: isMatch
+                      ? '#34c759'
+                      : isMismatch
+                      ? '#ff3b30'
+                      : 'var(--color-border)',
+                  }}
+                  onFocus={(e) => {
+                    if (isMatch) {
+                      e.target.style.boxShadow = '0 0 0 3px rgba(52,199,89,0.18)';
+                    } else if (isMismatch) {
+                      e.target.style.boxShadow = '0 0 0 3px rgba(255,59,48,0.18)';
+                    } else {
+                      e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)';
+                      e.target.style.borderColor = 'var(--color-accent)';
+                    }
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.boxShadow = 'none';
+                    e.target.style.borderColor = isMatch
+                      ? '#34c759'
+                      : isMismatch
+                      ? '#ff3b30'
+                      : 'var(--color-border)';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors rounded-[var(--radius-sm)]"
+                >
+                  {showConfirmPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Real-time Match Indicator */}
+              {isMatch && (
+                <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#34c759] mt-0.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>Passwords match</span>
+                </div>
+              )}
+              {isMismatch && (
+                <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#ff3b30] mt-0.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  <span>Passwords do not match</span>
                 </div>
               )}
             </div>
