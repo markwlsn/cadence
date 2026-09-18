@@ -29,9 +29,14 @@ export default function ReviewSessionPage() {
   const initialMode = (searchParams?.get('mode') as ReviewMode) || 'mastery';
   const assessmentId = searchParams?.get('assessment') || null;
 
+  const drillMode = searchParams?.get('drill'); // 'mistakes'
+  const drillCardsParam = searchParams?.get('cards'); // comma separated card IDs
+
   const assessmentConfig = assessmentId
     ? ASSESSMENT_CONFIGS.find((a) => a.id === assessmentId) || null
     : null;
+
+  const isExam = assessmentId === 'comprehensive_exam';
 
   const [deckTitle, setDeckTitle] = useState<string>('Deck');
   const [mode, setMode] = useState<ReviewMode>(initialMode);
@@ -39,6 +44,12 @@ export default function ReviewSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [correctCount, setCorrectCount] = useState(0);
+  const [missedCardIds, setMissedCardIds] = useState<string[]>([]);
+  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
+
+  // Exam timer: 35 minutes default
+  const [timeLeft, setTimeLeft] = useState(35 * 60);
+  const [timerActive, setTimerActive] = useState(true);
 
   // Review interaction state
   const [isFlipped, setIsFlipped] = useState(false);
@@ -46,12 +57,41 @@ export default function ReviewSessionPage() {
   const [selectedMcqOption, setSelectedMcqOption] = useState<number | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (!isExam || !timerActive || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isExam, timerActive, timeLeft]);
+
+  const toggleFlag = (cardId: string) => {
+    setFlaggedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+  };
+
   useEffect(() => {
     let ignore = false;
     if (deckId) {
-      const fetchQueue = assessmentId
-        ? getDeckCards(deckId).then((allCards) => getAssessmentCards(allCards, assessmentId))
-        : getQueue(deckId, mode);
+      let fetchQueue: Promise<CardType[]>;
+
+      if (drillMode === 'mistakes' && drillCardsParam) {
+        const idList = drillCardsParam.split(',').filter(Boolean);
+        fetchQueue = getDeckCards(deckId).then((all) =>
+          all.filter((c) => idList.includes(c.id))
+        );
+      } else if (assessmentId) {
+        fetchQueue = getDeckCards(deckId).then((allCards) =>
+          getAssessmentCards(allCards, assessmentId)
+        );
+      } else {
+        fetchQueue = getQueue(deckId, mode);
+      }
 
       Promise.all([
         getDeck(deckId),
@@ -65,6 +105,8 @@ export default function ReviewSessionPage() {
             setSessionId(sId);
             setCurrentIndex(0);
             setCorrectCount(0);
+            setMissedCardIds([]);
+            setFlaggedIds(new Set());
             setIsFlipped(false);
             setConfidenceBefore(undefined);
             setSelectedMcqOption(null);
@@ -79,7 +121,7 @@ export default function ReviewSessionPage() {
     return () => {
       ignore = true;
     };
-  }, [deckId, mode, assessmentId]);
+  }, [deckId, mode, assessmentId, drillMode, drillCardsParam]);
 
   // Handle Mode Change
   const handleModeChange = (newMode: ReviewMode) => {
@@ -124,6 +166,13 @@ export default function ReviewSessionPage() {
     const updatedCorrect = isCorrect ? correctCount + 1 : correctCount;
     setCorrectCount(updatedCorrect);
 
+    const updatedMissed = !isCorrect
+      ? Array.from(new Set([...missedCardIds, currentCard.id]))
+      : missedCardIds;
+    if (!isCorrect) {
+      setMissedCardIds(updatedMissed);
+    }
+
     // Submit review & record log entry
     try {
       await submitReview({
@@ -147,14 +196,14 @@ export default function ReviewSessionPage() {
     // Check if session complete
     if (currentIndex + 1 >= cards.length) {
       // Finished all cards! Navigate to summary
-      if (assessmentId) {
+      if (assessmentId && drillMode !== 'mistakes') {
         saveAssessmentProgress(deckId, assessmentId, updatedCorrect, cards.length);
-        router.push(
-          `/decks/${deckId}/review/summary?sessionId=${sessionId}&assessment=${assessmentId}&correct=${updatedCorrect}&total=${cards.length}`
-        );
-      } else {
-        router.push(`/decks/${deckId}/review/summary?sessionId=${sessionId}`);
       }
+      const missedQuery = updatedMissed.length > 0 ? `&missed=${updatedMissed.join(',')}` : '';
+      const assessmentQuery = assessmentId ? `&assessment=${assessmentId}` : '';
+      router.push(
+        `/decks/${deckId}/review/summary?sessionId=${sessionId}${assessmentQuery}&correct=${updatedCorrect}&total=${cards.length}${missedQuery}`
+      );
     } else {
       // Advance to next card
       setCurrentIndex((prev) => prev + 1);
@@ -238,19 +287,50 @@ export default function ReviewSessionPage() {
             </span>
           </div>
 
-          {/* Mode Switcher or Assessment Badge */}
-          {assessmentConfig ? (
-            <div className="flex items-center gap-1.5">
+          {/* Mode Switcher, Remediation Badge, or Assessment Info + Timer */}
+          {drillMode === 'mistakes' ? (
+            <Badge variant="accent" size="sm" className="font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+              🎯 Remediation Mode
+            </Badge>
+          ) : assessmentConfig ? (
+            <div className="flex items-center gap-2">
               <Badge variant="accent" size="sm" className="font-semibold">
                 {assessmentConfig.title}
               </Badge>
+              {isExam && (
+                <button
+                  type="button"
+                  onClick={() => setTimerActive(!timerActive)}
+                  className="px-2 py-0.5 rounded text-[12px] font-mono font-bold bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+                  title="Click to pause or resume countdown"
+                >
+                  ⏱️ {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                </button>
+              )}
             </div>
           ) : (
             <ModeToggle mode={mode} onChange={handleModeChange} />
           )}
 
-          {/* Progress badge & Theme Toggle */}
+          {/* Question Flagging + Theme Toggle + Progress badge */}
           <div className="flex items-center gap-2">
+            {cards[currentIndex] && (
+              <button
+                type="button"
+                onClick={() => toggleFlag(cards[currentIndex].id)}
+                className={`px-2.5 py-1 rounded-[var(--radius-sm)] text-[12px] font-semibold border transition-all flex items-center gap-1 active:scale-95 ${
+                  flaggedIds.has(cards[currentIndex].id)
+                    ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400'
+                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                }`}
+                title="Flag this question for review"
+              >
+                <span>🚩</span>
+                <span className="hidden sm:inline">
+                  {flaggedIds.has(cards[currentIndex].id) ? 'Flagged' : 'Flag'}
+                </span>
+              </button>
+            )}
             <ThemeToggle />
             <Badge variant="neutral" size="sm" className="font-mono">
               {currentIndex + 1} / {cards.length}
@@ -265,6 +345,40 @@ export default function ReviewSessionPage() {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        {/* Question Jump Navigator (for 35-item exam or multi-card reviews) */}
+        {cards.length > 5 && (
+          <div className="max-w-2xl mx-auto px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-[var(--color-border)] text-[11px]">
+            <span className="text-[10px] uppercase font-bold text-[var(--color-text-tertiary)] shrink-0 mr-1">
+              Jump:
+            </span>
+            {cards.map((c, i) => {
+              const isCurrent = i === currentIndex;
+              const isFlagged = flaggedIds.has(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setCurrentIndex(i);
+                    setIsFlipped(false);
+                    setSelectedMcqOption(null);
+                  }}
+                  className={`w-6 h-6 rounded flex items-center justify-center shrink-0 font-medium transition-all ${
+                    isCurrent
+                      ? 'bg-[var(--color-text)] text-[var(--color-bg)] font-bold shadow-sm'
+                      : isFlagged
+                      ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-bold'
+                      : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                  title={`Question ${i + 1}${isFlagged ? ' (Flagged for Review)' : ''}`}
+                >
+                  {isFlagged ? '🚩' : i + 1}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {/* Main Review Area */}

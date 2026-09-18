@@ -32,6 +32,8 @@ export default function SessionSummaryPage() {
   const assessmentId = searchParams?.get('assessment') || null;
   const paramCorrect = searchParams?.get('correct');
   const paramTotal = searchParams?.get('total');
+  const paramMissed = searchParams?.get('missed') || '';
+  const missedIds = paramMissed ? paramMissed.split(',').filter(Boolean) : [];
 
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [animatedAccuracy, setAnimatedAccuracy] = useState(0);
@@ -183,18 +185,45 @@ export default function SessionSummaryPage() {
 
       {/* Linear Next Actions */}
       <footer className="flex flex-col gap-3 pb-4 mt-auto pt-6 border-t border-[var(--color-border)]">
+        {/* Remediation Action: Drill Missed Questions */}
+        {missedIds.length > 0 && (
+          <Link
+            href={`/decks/${deckId}/review?assessment=${assessmentId || ''}&drill=mistakes&cards=${missedIds.join(',')}`}
+            className="w-full"
+          >
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="text-[15px] font-bold shadow-md bg-[var(--color-text)] text-[var(--color-bg)] hover:opacity-90"
+            >
+              🎯 Drill Missed Questions ({missedIds.length} {missedIds.length === 1 ? 'item' : 'items'}) →
+            </Button>
+          </Link>
+        )}
+
         {nextAssessmentConfig ? (
           <Link
             href={`/decks/${deckId}/review?assessment=${nextAssessmentConfig.id}`}
             className="w-full"
           >
-            <Button variant="primary" size="lg" fullWidth className="text-[15px] font-bold">
+            <Button
+              variant={missedIds.length > 0 ? 'secondary' : 'primary'}
+              size="lg"
+              fullWidth
+              className="text-[15px] font-bold"
+            >
               Proceed to {nextAssessmentConfig.title} →
             </Button>
           </Link>
         ) : (
           <Link href={`/decks/${deckId}`} className="w-full">
-            <Button variant="primary" size="lg" fullWidth className="text-[15px] font-bold">
+            <Button
+              variant={missedIds.length > 0 ? 'secondary' : 'primary'}
+              size="lg"
+              fullWidth
+              className="text-[15px] font-bold"
+            >
               Curriculum Complete · Back to Deck →
             </Button>
           </Link>
