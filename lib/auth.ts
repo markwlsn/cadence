@@ -241,9 +241,10 @@ export function deleteAccountAndData(): User {
       if (!current.isGuest && current.email) {
         const rawDb = localStorage.getItem(USERS_DB_KEY);
         if (rawDb) {
-          const users = JSON.parse(rawDb) as Array<{ email?: string }>;
-          const filtered = users.filter((u) => u.email?.toLowerCase() !== current.email?.toLowerCase());
-          localStorage.setItem(USERS_DB_KEY, JSON.stringify(filtered));
+          const users: Record<string, unknown> = JSON.parse(rawDb);
+          const cleanEmail = current.email.toLowerCase().trim();
+          delete users[cleanEmail];
+          localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
         }
       }
       localStorage.removeItem('cadence_user_stats');

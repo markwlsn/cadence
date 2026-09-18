@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { loginUser, continueAsGuest } from '@/lib/auth';
+import { loginUser, continueAsGuest, getCurrentUser } from '@/lib/auth';
 import { ThemeToggle, BackButton, CadenceLogo } from '@/components/ui';
 
 export default function LoginPage() {
@@ -20,8 +20,12 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('redirect');
       if (p) setRedirectParam(p);
+      const user = getCurrentUser();
+      if (user && !user.isGuest) {
+        router.replace(p || '/');
+      }
     }
-  }, []);
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

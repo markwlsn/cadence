@@ -29,7 +29,7 @@ export default function ProfilePage() {
     setMounted(true);
     const currentUser = getCurrentUser();
     if (currentUser.isGuest) {
-      router.replace('/login');
+      router.replace('/login?redirect=/profile');
       return;
     }
     setUser(currentUser);

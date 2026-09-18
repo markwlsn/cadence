@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { registerUser, continueAsGuest, AVATAR_OPTIONS } from '@/lib/auth';
+import { registerUser, continueAsGuest, getCurrentUser, AVATAR_OPTIONS } from '@/lib/auth';
 import { ThemeToggle, BackButton, CadenceLogo } from '@/components/ui';
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string; level: number } {
@@ -39,8 +39,12 @@ export default function RegisterPage() {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('redirect');
       if (p) setRedirectParam(p);
+      const user = getCurrentUser();
+      if (user && !user.isGuest) {
+        router.replace(p || '/');
+      }
     }
-  }, []);
+  }, [router]);
 
   const strength = getPasswordStrength(password);
   const isMatch = confirmPassword.length > 0 && password === confirmPassword;
