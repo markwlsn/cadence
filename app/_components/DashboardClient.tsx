@@ -158,13 +158,16 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [quoteIndex] = useState(() => Math.floor(Math.random() * STUDY_QUOTES.length));
+  const [quote, setQuote] = useState(STUDY_QUOTES[0]);
+  const [greeting, setGreeting] = useState('Welcome');
 
   // Build statsMap from serialised entries
   const statsMap = new Map<string, DeckStats>(statsEntries);
 
   useEffect(() => {
     setMounted(true);
+    setQuote(STUDY_QUOTES[Math.floor(Math.random() * STUDY_QUOTES.length)]);
+    setGreeting(getGreeting());
     setUser(getCurrentUser());
     setStats(getUserStats());
 
@@ -202,10 +205,10 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight text-[var(--color-text)] leading-tight">
-              {getGreeting()}, {displayName}! 👋
+              {greeting}, {displayName}! 👋
             </h1>
             <p className="mt-1.5 text-[14px] text-[var(--color-text-secondary)] italic max-w-md">
-              "{STUDY_QUOTES[quoteIndex]}"
+              "{quote}"
             </p>
           </div>
         </div>

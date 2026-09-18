@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import React from "react";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -44,8 +45,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <script
+      <body
+        className="min-h-full flex flex-col transition-colors duration-200"
+        style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
+      >
+        <Script
+          id="cadence-theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               try {
@@ -61,11 +67,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-      </head>
-      <body
-        className="min-h-full flex flex-col transition-colors duration-200"
-        style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
-      >
         {children}
       </body>
     </html>
