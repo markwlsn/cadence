@@ -9,3 +9,4 @@ export { OnboardingCheck } from './OnboardingCheck';
 export { ThemeToggle } from './ThemeToggle';
 export { Navbar } from './Navbar';
 export { BackButton } from './BackButton';
+export { CadenceLogo } from './CadenceLogo';

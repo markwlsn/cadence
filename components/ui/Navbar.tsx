@@ -4,10 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
+import { CadenceLogo } from './CadenceLogo';
 import { getCurrentUser } from '@/lib/auth';
-import { getUserStats } from '@/lib/gamification';
 import type { User } from '@/lib/auth';
-import type { UserStats } from '@/lib/gamification';
 
 const DESKTOP_NAV_LINKS = [
   { label: 'Dashboard', href: '/' },
@@ -18,33 +17,26 @@ const MOBILE_NAV_LINKS = [
   { label: 'Dashboard', href: '/' },
   { label: 'My Decks', href: '/#decks-section', isAnchor: true },
   { label: '+ Create New Deck', href: '/decks/new' },
-  { label: 'Profile & Achievements', href: '/profile' },
+  { label: 'Profile & Settings', href: '/profile' },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<UserStats | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setUser(getCurrentUser());
-    setStats(getUserStats());
 
-    const handleStatsUpdate = (e: CustomEvent) => {
-      setStats(e.detail as UserStats);
-    };
     const handleAuthUpdate = (e: CustomEvent) => {
       setUser(e.detail as User);
     };
 
-    window.addEventListener('cadence_stats_updated', handleStatsUpdate as EventListener);
     window.addEventListener('cadence_auth_updated', handleAuthUpdate as EventListener);
 
     return () => {
-      window.removeEventListener('cadence_stats_updated', handleStatsUpdate as EventListener);
       window.removeEventListener('cadence_auth_updated', handleAuthUpdate as EventListener);
     };
   }, []);
@@ -84,9 +76,7 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* ── Left: Logo ── */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group" aria-label="Cadence home">
-          <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[15px] shadow-[var(--shadow-sm)] group-hover:scale-105 transition-transform">
-            C
-          </div>
+          <CadenceLogo size={32} />
           <span className="font-bold text-[18px] tracking-tight text-[var(--color-text)]">
             Cadence
           </span>
@@ -189,17 +179,6 @@ export function Navbar() {
           className="md:hidden border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-md px-4 py-3 flex flex-col gap-1"
           aria-label="Mobile navigation"
         >
-          {/* Mobile stats row */}
-          {mounted && stats !== null && (
-            <div className="flex items-center gap-3 px-3 py-2 mb-1">
-              <span className="text-[13px] font-bold text-[var(--color-text)]">
-                🔥 {stats.streak} day streak
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] border border-[var(--color-border)] text-[12px] font-semibold">
-                ⚡ Lv.{stats.level} · {stats.xp} XP
-              </span>
-            </div>
-          )}
           {MOBILE_NAV_LINKS.map((link) => (
             <Link
               key={link.href}

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Card as CardType } from '@/types';
 import { Badge, Button } from '@/components/ui';
 import { evaluateStudentAnswer } from '@/lib/utils/levenshtein';
-import { recordCardReview } from '@/lib/gamification';
 
 interface FlashCardProps {
   card: CardType;
@@ -151,8 +150,6 @@ export function FlashCard({
   const [clozeStatus, setClozeStatus] = useState<'idle' | 'correct' | 'incorrect'>('idle');
   const [clozeFeedback, setClozeFeedback] = useState<string>('');
   const [showHint, setShowHint] = useState<boolean>(false);
-  const [earnedXP, setEarnedXP] = useState<number | null>(null);
-
   // Basic open question interactive answer box
   const [basicAnswer, setBasicAnswer] = useState('');
 
@@ -162,7 +159,6 @@ export function FlashCard({
     setClozeStatus('idle');
     setClozeFeedback('');
     setShowHint(false);
-    setEarnedXP(null);
     setBasicAnswer('');
   }, [card.id]);
 
@@ -174,8 +170,6 @@ export function FlashCard({
     const result = evaluateStudentAnswer(clozeInput, clozeData.expectedAnswer);
     if (result.isMatch) {
       setClozeStatus('correct');
-      const { earnedXP: xp } = recordCardReview({ isCorrect: true, cardType: 'cloze', isCode });
-      setEarnedXP(xp);
       if (result.matchType === 'typo') {
         setClozeFeedback(`Almost! ${result.message || 'Minor typo'} — counted as correct!`);
       } else {
@@ -185,19 +179,13 @@ export function FlashCard({
       setClozeStatus('incorrect');
       setClozeFeedback('Not quite! Check the hint or try again.');
     }
-  }, [clozeInput, clozeData.expectedAnswer, isCode]);
+  }, [clozeInput, clozeData.expectedAnswer]);
 
   const handleSelectMcq = useCallback(
     (index: number) => {
       onSelectMcqOption?.(index);
-      if (card.options) {
-        const chosen = card.options[index];
-        const isRight = normalizeText(chosen || '') === normalizeText(card.back || '');
-        const { earnedXP: xp } = recordCardReview({ isCorrect: isRight, cardType: 'mcq', isCode });
-        setEarnedXP(xp);
-      }
     },
-    [onSelectMcqOption, card.options, card.back, isCode]
+    [onSelectMcqOption]
   );
 
   // Keyboard shortcut for MCQ options: 1-4 or A-D when card is on front
@@ -413,13 +401,6 @@ export function FlashCard({
                     </div>
                   )}
 
-                  {/* XP Reward Badge */}
-                  {earnedXP !== null && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[12px] font-bold animate-count-up">
-                      <span>⚡ +{earnedXP} XP Earned!</span>
-                    </div>
-                  )}
-
                   {clozeStatus === 'correct' && (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[13px] font-medium animate-count-up">
                       <span>✓ {clozeFeedback || 'Correct! Great recall. Tap card to view explanation.'}</span>
@@ -530,12 +511,6 @@ export function FlashCard({
                 >
                   {selectedMcqOption !== null && selectedMcqOption !== undefined ? (
                     <div className="flex flex-col items-center gap-2 animate-count-up">
-                      {/* XP Reward */}
-                      {earnedXP !== null && (
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold ${isMcqCorrect ? 'bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'}`}>
-                          {isMcqCorrect ? `⚡ +${earnedXP} XP — First try!` : `+${earnedXP} XP — Try to get it right!`}
-                        </div>
-                      )}
                       {isMcqCorrect ? (
                         <span className="text-emerald-600 dark:text-emerald-400 text-[13px] font-semibold">
                           ✓ Correct! Great recall.

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui';
+import { Button, CadenceLogo } from '@/components/ui';
 
 interface OnboardingStep {
   tag: string;
@@ -81,12 +81,7 @@ export default function OnboardingPage() {
     <main className="min-h-dvh flex flex-col justify-between p-6 sm:p-12 max-w-xl mx-auto w-full">
       {/* Top Header & Skip */}
       <header className="flex items-center justify-between pt-4">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-[8px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[14px]">
-            C
-          </div>
-          <span className="font-semibold text-[17px] tracking-tight">Cadence</span>
-        </div>
+        <CadenceLogo size={28} showText />
         <button
           type="button"
           onClick={handleFinish}

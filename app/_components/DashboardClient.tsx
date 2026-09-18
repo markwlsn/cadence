@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getUserStats } from '@/lib/gamification';
 import { getCurrentUser } from '@/lib/auth';
 import { deleteDeck, archiveDeck } from '@/lib/data';
 import { Badge, Button } from '@/components/ui';
 import type { Deck, DeckStats } from '@/types';
-import type { UserStats } from '@/lib/gamification';
 import type { User } from '@/lib/auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,37 +32,11 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function getStarCount(masterPercent: number): 1 | 2 | 3 {
-  if (masterPercent > 66) return 3;
-  if (masterPercent > 33) return 2;
-  return 1;
-}
-
-function StarRating({ count }: { count: 1 | 2 | 3 }) {
-  return (
-    <div className="flex items-center gap-0.5" aria-label={`${count} out of 3 stars`}>
-      {[1, 2, 3].map((n) => (
-        <svg
-          key={n}
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill={n <= count ? 'var(--color-warning)' : 'none'}
-          stroke={n <= count ? 'var(--color-warning)' : 'var(--color-text-tertiary)'}
-          strokeWidth="1.8"
-        >
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
 function MasteryBar({ percent }: { percent: number }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-[11px] text-[var(--color-text-secondary)]">
-        <span>Retention</span>
+        <span>Retention Stability</span>
         <span className="font-semibold text-[var(--color-text)]">{percent}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
@@ -81,7 +53,6 @@ function MasteryBar({ percent }: { percent: number }) {
 
 export default function DashboardClient({ decks, statsEntries }: Props) {
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<UserStats | null>(null);
   const [mounted, setMounted] = useState(false);
   const [greeting, setGreeting] = useState('Welcome');
   const [deckList, setDeckList] = useState<Deck[]>(decks);
@@ -95,15 +66,10 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
     setMounted(true);
     setGreeting(getGreeting());
     setUser(getCurrentUser());
-    setStats(getUserStats());
 
-    const handleStats = (e: CustomEvent) => setStats(e.detail as UserStats);
     const handleAuth = (e: CustomEvent) => setUser(e.detail as User);
-
-    window.addEventListener('cadence_stats_updated', handleStats as EventListener);
     window.addEventListener('cadence_auth_updated', handleAuth as EventListener);
     return () => {
-      window.removeEventListener('cadence_stats_updated', handleStats as EventListener);
       window.removeEventListener('cadence_auth_updated', handleAuth as EventListener);
     };
   }, []);
@@ -147,6 +113,16 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
     return sum + (s?.dueNow || 0);
   }, 0);
 
+  const totalCardsAllDecks = activeDecks.reduce((sum, deck) => {
+    const s = statsMap.get(deck.id);
+    return sum + (s?.totalCards || 0);
+  }, 0);
+
+  const totalMasteredAllDecks = activeDecks.reduce((sum, deck) => {
+    const s = statsMap.get(deck.id);
+    return sum + (s?.masteredCount || 0);
+  }, 0);
+
   const dueDecks = activeDecks.filter((d) => (statsMap.get(d.id)?.dueNow || 0) > 0);
 
   // Decks to display based on selected tab
@@ -160,12 +136,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   // Deck with the most due cards for quick review
   const primaryReviewDeck = dueDecks.length > 0 ? dueDecks[0] : activeDecks[0];
 
-  const currentStats = stats;
-  const dailyGoalPercent = currentStats
-    ? Math.min(100, Math.round((currentStats.todayStudiedCount / currentStats.dailyGoal) * 100))
-    : 0;
-
-  const displayName = mounted && user ? user.name.split(' ')[0] : 'Scholar';
+  const displayName = mounted && user ? user.name.split(' ')[0] : 'Student';
 
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -177,10 +148,10 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
           </h1>
           <p className="mt-1 text-[15px] text-[var(--color-text-secondary)]">
             {totalDueCards > 0
-              ? `You have ${totalDueCards} card${totalDueCards === 1 ? '' : 's'} ready for review today across ${dueDecks.length} deck${dueDecks.length === 1 ? '' : 's'}.`
+              ? `You have ${totalDueCards} question${totalDueCards === 1 ? '' : 's'} scheduled for spaced repetition review across ${dueDecks.length} deck${dueDecks.length === 1 ? '' : 's'}.`
               : activeDecks.length > 0
-              ? 'All caught up on your spaced repetition reviews for today.'
-              : 'Welcome to Cadence. Upload your notes to create your first active recall deck.'}
+              ? 'All scheduled active recall reviews are up to date.'
+              : 'Welcome to Cadence. Upload your notes to generate your first structured study curriculum.'}
           </p>
         </div>
 
@@ -189,13 +160,13 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
           {totalDueCards > 0 && primaryReviewDeck ? (
             <Link href={`/decks/${primaryReviewDeck.id}/review?mode=mastery`}>
               <Button variant="primary" size="md" className="shadow-[var(--shadow-sm)]">
-                ⚡ Start Daily Review ({totalDueCards})
+                Start Due Review ({totalDueCards})
               </Button>
             </Link>
           ) : (
             <Link href="/decks/new">
               <Button variant="primary" size="md" className="shadow-[var(--shadow-sm)]">
-                ✨ Create Deck with AI
+                ✨ Synthesize Notes with AI
               </Button>
             </Link>
           )}
@@ -216,11 +187,11 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                     AI Study Synthesizer
                   </span>
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
-                    FSRS Spaced Repetition
+                    Linear Curriculum
                   </span>
                 </div>
                 <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
-                  Drop lecture PDFs, photos of handwritten notes, or paste summaries. Cadence writes concept flashcards, cloze deletions, and multiple-choice questions automatically.
+                  Drop lecture PDFs, photos of notes, or paste text. Cadence formats an organized learning sequence: Quiz 1, 2, 3, Long Quizzes, and a 35-item Comprehensive Exam.
                 </p>
               </div>
 
@@ -329,8 +300,6 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                       ? Math.round((s.masteredCount / s.totalCards) * 100)
                       : 0;
 
-                  const stars = getStarCount(masteryPercent);
-
                   return (
                     <article
                       key={deck.id}
@@ -408,36 +377,30 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                             </h3>
                           </Link>
                           <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-                            {s.totalCards} cards · {s.masteredCount} mastered
+                            {s.totalCards} total questions · {s.masteredCount} mastered
                           </p>
                         </div>
 
                         {/* Retention Progress Bar */}
                         <MasteryBar percent={masteryPercent} />
 
-                        {/* Star Rating */}
-                        <div className="flex items-center gap-1.5">
-                          <StarRating count={stars} />
-                          <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                            {masteryPercent >= 66
-                              ? 'High stability'
-                              : masteryPercent >= 33
-                              ? 'Building retention'
-                              : 'New cards'}
-                          </span>
+                        {/* Linear Assessment Curriculum Tag */}
+                        <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-secondary)] font-medium">
+                          <span>📋</span>
+                          <span>3 Quizzes · 2 Long Quizzes · 1 Exam</span>
                         </div>
                       </div>
 
                       {/* Card Actions */}
                       <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex items-center gap-2">
-                        <Link href={`/decks/${deck.id}/review?mode=mastery`} className="flex-1">
-                          <Button variant="primary" size="sm" className="w-full text-[13px]">
-                            {s.dueNow > 0 ? `Review (${s.dueNow})` : 'Review Deck'}
+                        <Link href={`/decks/${deck.id}`} className="flex-1">
+                          <Button variant="primary" size="sm" className="w-full text-[13px] font-semibold">
+                            Open Curriculum →
                           </Button>
                         </Link>
-                        <Link href={`/decks/${deck.id}/review?mode=cram`}>
+                        <Link href={`/decks/${deck.id}/review?mode=mastery`}>
                           <Button variant="secondary" size="sm" className="text-[13px]">
-                            Cram All
+                            {s.dueNow > 0 ? `Review (${s.dueNow})` : 'Practice'}
                           </Button>
                         </Link>
                       </div>
@@ -449,91 +412,101 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
           </section>
         </div>
 
-        {/* ── Right Column: Study Companion & Goals Sidebar (4 cols) ─────────── */}
+        {/* ── Right Column: Academic Curriculum Overview Sidebar (4 cols) ─────── */}
         <aside className="lg:col-span-4 space-y-6">
-          {/* Daily Goal Card */}
+          {/* Assessment Architecture Card */}
           <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-                Daily Goal
+                Assessment Architecture
               </h3>
-              {mounted && currentStats && (
-                <span className="text-[12px] font-semibold text-[var(--color-text-secondary)]">
-                  {currentStats.todayStudiedCount} / {currentStats.dailyGoal} cards
-                </span>
-              )}
+              <span className="text-[12px] font-semibold px-2 py-0.5 rounded bg-[var(--color-surface-overlay)] text-[var(--color-text)]">
+                Linear
+              </span>
             </div>
 
-            <div className="h-2.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
-              <div
-                className="h-full rounded-full bg-[var(--color-text)] transition-all duration-700"
-                style={{ width: `${dailyGoalPercent}%` }}
-              />
-            </div>
-
-            <p className="text-[12px] text-[var(--color-text-secondary)] leading-snug">
-              {dailyGoalPercent >= 100
-                ? '🎉 Excellent work! You completed your daily study goal.'
-                : 'Review cards consistently every day to maximize memory stability.'}
+            <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+              Every study deck is structured into an academic assessment pathway to eliminate random memorization:
             </p>
+
+            <div className="space-y-2 pt-1">
+              <div className="p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+                <span className="text-[12px] font-bold text-[var(--color-text)] block">
+                  1. Short Quizzes (1, 2, 3)
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">
+                  ~5 items each: Core terminology, mechanisms, and distinctions.
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+                <span className="text-[12px] font-bold text-[var(--color-text)] block">
+                  2. Long Quizzes (1, 2)
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">
+                  ~12–15 items each: Multi-concept synthesis and comparative review.
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+                <span className="text-[12px] font-bold text-[var(--color-text)] block">
+                  3. Comprehensive Exam (35 items)
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">
+                  Full deck simulation under real testing conditions.
+                </span>
+              </div>
+            </div>
           </section>
 
-          {/* Student Study Rhythm Metrics */}
-          {mounted && currentStats && (
-            <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-                  Study Rhythm
-                </h3>
-                <Link
-                  href="/profile"
-                  className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
-                >
-                  Profile →
-                </Link>
+          {/* Academic Overview Metrics */}
+          <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
+                Study Progress
+              </h3>
+              <Link
+                href="/profile"
+                className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
+              >
+                Account →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Active Decks */}
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                <span className="text-[18px] font-bold text-[var(--color-text)]">
+                  {activeDecks.length}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">Active Decks</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Streak */}
-                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
-                  <span className="text-[18px]">🔥</span>
-                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
-                    {currentStats.streak}d
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)]">Day Streak</span>
-                </div>
-
-                {/* Level */}
-                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
-                  <span className="text-[18px]">⚡</span>
-                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
-                    Lv. {currentStats.level}
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)] truncate">
-                    {currentStats.title}
-                  </span>
-                </div>
-
-                {/* Stars */}
-                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
-                  <span className="text-[18px]">⭐</span>
-                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
-                    {currentStats.totalStars}
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)]">Stars Earned</span>
-                </div>
-
-                {/* Total Cards */}
-                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
-                  <span className="text-[18px]">📚</span>
-                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
-                    {currentStats.totalCardsReviewed}
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)]">Reviewed</span>
-                </div>
+              {/* Total Questions */}
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                <span className="text-[18px] font-bold text-[var(--color-text)]">
+                  {totalCardsAllDecks}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">Questions</span>
               </div>
-            </section>
-          )}
+
+              {/* Mastered */}
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                <span className="text-[18px] font-bold text-[var(--color-success)]">
+                  {totalMasteredAllDecks}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">Mastered</span>
+              </div>
+
+              {/* Due Today */}
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                <span className="text-[18px] font-bold text-[var(--color-text)]">
+                  {totalDueCards}
+                </span>
+                <span className="text-[11px] text-[var(--color-text-secondary)]">Due Today</span>
+              </div>
+            </div>
+          </section>
 
           {/* Spaced Repetition Science Insight */}
           <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-2">
@@ -544,7 +517,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
               </h3>
             </div>
             <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed">
-              Cards adapt in real-time based on memory stability and your rating feedback (Again, Hard, Good, Easy). Studying just before you forget builds the strongest neural traces.
+              Cards adapt in real-time based on memory stability and your rating feedback (Again, Hard, Good, Easy). Reviewing right before memory decay produces the highest retention.
             </p>
           </section>
         </aside>

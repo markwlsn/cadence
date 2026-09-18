@@ -7,10 +7,16 @@ import type { Card as CardType, Rating, ReviewMode } from '@/types';
 import {
   getDeck,
   getQueue,
+  getDeckCards,
   createSession,
   submitReview,
   recordSessionLog,
 } from '@/lib/data';
+import {
+  getAssessmentCards,
+  saveAssessmentProgress,
+  ASSESSMENT_CONFIGS,
+} from '@/lib/assessments';
 import { CardStack, ConfidenceRater, RatingButtons, ModeToggle } from '@/components/review';
 import { Button, Badge, ThemeToggle } from '@/components/ui';
 
@@ -21,12 +27,18 @@ export default function ReviewSessionPage() {
 
   const deckId = (params?.id as string) || '';
   const initialMode = (searchParams?.get('mode') as ReviewMode) || 'mastery';
+  const assessmentId = searchParams?.get('assessment') || null;
+
+  const assessmentConfig = assessmentId
+    ? ASSESSMENT_CONFIGS.find((a) => a.id === assessmentId) || null
+    : null;
 
   const [deckTitle, setDeckTitle] = useState<string>('Deck');
   const [mode, setMode] = useState<ReviewMode>(initialMode);
   const [cards, setCards] = useState<CardType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [correctCount, setCorrectCount] = useState(0);
 
   // Review interaction state
   const [isFlipped, setIsFlipped] = useState(false);
@@ -37,9 +49,13 @@ export default function ReviewSessionPage() {
   useEffect(() => {
     let ignore = false;
     if (deckId) {
+      const fetchQueue = assessmentId
+        ? getDeckCards(deckId).then((allCards) => getAssessmentCards(allCards, assessmentId))
+        : getQueue(deckId, mode);
+
       Promise.all([
         getDeck(deckId),
-        getQueue(deckId, mode),
+        fetchQueue,
         createSession(deckId, mode),
       ])
         .then(([deck, queue, sId]) => {
@@ -48,6 +64,7 @@ export default function ReviewSessionPage() {
             setCards(queue);
             setSessionId(sId);
             setCurrentIndex(0);
+            setCorrectCount(0);
             setIsFlipped(false);
             setConfidenceBefore(undefined);
             setSelectedMcqOption(null);
@@ -62,7 +79,7 @@ export default function ReviewSessionPage() {
     return () => {
       ignore = true;
     };
-  }, [deckId, mode]);
+  }, [deckId, mode, assessmentId]);
 
   // Handle Mode Change
   const handleModeChange = (newMode: ReviewMode) => {
@@ -103,6 +120,10 @@ export default function ReviewSessionPage() {
     const currentCard = cards[currentIndex];
     if (!currentCard) return;
 
+    const isCorrect = rating === 'good' || rating === 'easy';
+    const updatedCorrect = isCorrect ? correctCount + 1 : correctCount;
+    setCorrectCount(updatedCorrect);
+
     // Submit review & record log entry
     try {
       await submitReview({
@@ -126,7 +147,14 @@ export default function ReviewSessionPage() {
     // Check if session complete
     if (currentIndex + 1 >= cards.length) {
       // Finished all cards! Navigate to summary
-      router.push(`/decks/${deckId}/review/summary?sessionId=${sessionId}`);
+      if (assessmentId) {
+        saveAssessmentProgress(deckId, assessmentId, updatedCorrect, cards.length);
+        router.push(
+          `/decks/${deckId}/review/summary?sessionId=${sessionId}&assessment=${assessmentId}&correct=${updatedCorrect}&total=${cards.length}`
+        );
+      } else {
+        router.push(`/decks/${deckId}/review/summary?sessionId=${sessionId}`);
+      }
     } else {
       // Advance to next card
       setCurrentIndex((prev) => prev + 1);
@@ -210,8 +238,16 @@ export default function ReviewSessionPage() {
             </span>
           </div>
 
-          {/* Mode Switcher */}
-          <ModeToggle mode={mode} onChange={handleModeChange} />
+          {/* Mode Switcher or Assessment Badge */}
+          {assessmentConfig ? (
+            <div className="flex items-center gap-1.5">
+              <Badge variant="accent" size="sm" className="font-semibold">
+                {assessmentConfig.title}
+              </Badge>
+            </div>
+          ) : (
+            <ModeToggle mode={mode} onChange={handleModeChange} />
+          )}
 
           {/* Progress badge & Theme Toggle */}
           <div className="flex items-center gap-2">

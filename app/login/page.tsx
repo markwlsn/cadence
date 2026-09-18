@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginUser, continueAsGuest } from '@/lib/auth';
-import { ThemeToggle, BackButton } from '@/components/ui';
+import { ThemeToggle, BackButton, CadenceLogo } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -65,12 +65,7 @@ export default function LoginPage() {
         />
 
         <div className="flex items-center gap-3 relative z-10">
-          <div
-            className="w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-[20px] bg-white text-black shadow-sm"
-          >
-            C
-          </div>
-          <span className="text-white font-bold text-[22px] tracking-tight">Cadence</span>
+          <CadenceLogo size={36} showText className="text-white" />
         </div>
 
         <div className="relative z-10">
@@ -78,13 +73,13 @@ export default function LoginPage() {
             Study smarter<br />with AI
           </h1>
           <p className="text-white/80 text-[18px] mb-10 leading-relaxed">
-            Adaptive flashcards that know exactly what you need to review and when.
+            Organized quizzes and exams that know exactly what you need to review and when.
           </p>
           <ul className="flex flex-col gap-5">
             {[
-              { icon: '🧠', label: 'AI-generated cards from your notes' },
-              { icon: '🔥', label: 'Daily streaks to keep momentum' },
-              { icon: '⭐', label: 'Track your mastery over time' },
+              { icon: '🧠', label: 'AI-generated questions from your notes' },
+              { icon: '📝', label: 'Linear Quizzes & 35-item Comprehensive Exams' },
+              { icon: '📈', label: 'FSRS spaced repetition memory retention' },
             ].map(({ icon, label }) => (
               <li key={label} className="flex items-center gap-4">
                 <span
@@ -114,10 +109,7 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md mx-auto w-full">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[16px]">
-              C
-            </div>
-            <span className="font-bold text-[19px] tracking-tight text-[var(--color-text)]">Cadence</span>
+            <CadenceLogo size={32} showText />
           </div>
 
           <div className="mb-8">

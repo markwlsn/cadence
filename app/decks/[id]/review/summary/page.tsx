@@ -5,14 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { completeSession } from '@/lib/data';
 import { Button, Badge } from '@/components/ui';
-import {
-  recordSessionCompletion,
-  calculateSessionStars,
-  getUserStats,
-  type UserStats,
-} from '@/lib/gamification';
-
-// --- Types -----------------------------------------------------------------
+import { ASSESSMENT_CONFIGS, getNextAssessmentId } from '@/lib/assessments';
 
 interface SessionSummary {
   deckId: string;
@@ -23,134 +16,12 @@ interface SessionSummary {
   mode: string;
 }
 
-// --- Helpers ---------------------------------------------------------------
-
-function getMotivationalMessage(accuracy: number): string {
-  if (accuracy >= 1.0) return "🏆 Perfect Score! You're a memory champion!";
-  if (accuracy >= 0.9) return '🎯 Excellent recall! Keep it up!';
-  if (accuracy >= 0.7) return '📈 Good progress! A little more practice makes perfect.';
-  return '💪 Keep studying! Every review builds memory traces.';
+function getPerformanceMessage(accuracy: number): string {
+  if (accuracy >= 1.0) return 'Perfect Score! Comprehensive recall verified.';
+  if (accuracy >= 0.8) return 'Great work! Solid grasp of concepts and mechanisms.';
+  if (accuracy >= 0.7) return 'Passed! Review incorrect cards to reinforce stability.';
+  return 'Keep practicing! Retrieval practice strengthens long-term neural traces.';
 }
-
-// --- Sub-components --------------------------------------------------------
-
-interface StarRatingProps {
-  earned: 1 | 2 | 3;
-  revealed: boolean;
-}
-
-function StarRating({ earned, revealed }: StarRatingProps) {
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-4" role="img" aria-label={`${earned} out of 3 stars`}>
-        {([1, 2, 3] as const).map((star) => {
-          const isFilled = star <= earned;
-          const delayMs = (star - 1) * 200;
-          return (
-            <span
-              key={star}
-              className={`text-5xl sm:text-6xl select-none ${
-                revealed ? 'animate-star-pop' : 'opacity-0'
-              }`}
-              style={{ animationDelay: `${delayMs}ms` }}
-              aria-hidden="true"
-            >
-              {isFilled ? (
-                <span style={{ filter: 'drop-shadow(0 2px 8px rgba(255,159,10,0.5))' }}>&#11088;</span>
-              ) : (
-                <span style={{ opacity: 0.25, filter: 'grayscale(1)' }}>&#11088;</span>
-              )}
-            </span>
-          );
-        })}
-      </div>
-      <span
-        className="text-[13px] font-semibold uppercase tracking-widest"
-        style={{ color: 'var(--color-text-secondary)' }}
-      >
-        {earned} / 3 Stars
-      </span>
-    </div>
-  );
-}
-
-interface XPPillProps {
-  bonusXP: number;
-  totalXP: number;
-  level: number;
-  revealed: boolean;
-}
-
-function XPPill({ bonusXP, totalXP, level, revealed }: XPPillProps) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-1 ${revealed ? 'animate-fade-slide-up' : 'opacity-0'}`}
-      style={{ animationDelay: '700ms' }}
-    >
-      <div
-        className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-[15px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] shadow-[var(--shadow-sm)]"
-      >
-        <span style={{ fontSize: '18px' }}>&#9889;</span>
-        +{bonusXP} XP Earned
-      </div>
-      <span className="text-[12px]" style={{ color: 'var(--color-text-secondary)' }}>
-        {'Total: '}
-        <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
-          {totalXP.toLocaleString()} XP
-        </span>
-        {' · Level '}
-        <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
-          {level}
-        </span>
-      </span>
-    </div>
-  );
-}
-
-// --- StatCard --------------------------------------------------------------
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  sub?: string;
-  valueColor?: string;
-  subColor?: string;
-}
-
-function StatCard({ label, value, sub, valueColor, subColor }: StatCardProps) {
-  return (
-    <div
-      className="p-4 rounded-[var(--radius-md)] text-center flex flex-col items-center justify-center gap-1"
-      style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-      }}
-    >
-      <span
-        className="text-[11px] font-semibold uppercase tracking-wide block"
-        style={{ color: 'var(--color-text-secondary)' }}
-      >
-        {label}
-      </span>
-      <span
-        className="text-[20px] font-bold leading-tight"
-        style={{ color: valueColor ?? 'var(--color-text)' }}
-      >
-        {value}
-      </span>
-      {sub && (
-        <span
-          className="text-[11px] font-semibold"
-          style={{ color: subColor ?? 'var(--color-text-tertiary)' }}
-        >
-          {sub}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// --- Main Page -------------------------------------------------------------
 
 export default function SessionSummaryPage() {
   const params = useParams();
@@ -158,86 +29,80 @@ export default function SessionSummaryPage() {
 
   const deckId = (params?.id as string) || '';
   const sessionId = searchParams?.get('sessionId') || '';
+  const assessmentId = searchParams?.get('assessment') || null;
+  const paramCorrect = searchParams?.get('correct');
+  const paramTotal = searchParams?.get('total');
 
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [animatedAccuracy, setAnimatedAccuracy] = useState(0);
-  const [starsEarned, setStarsEarned] = useState<1 | 2 | 3>(1);
-  const [bonusXP, setBonusXP] = useState(0);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [starsRevealed, setStarsRevealed] = useState(false);
-  const [gamificationRevealed, setGamificationRevealed] = useState(false);
+
+  const assessmentConfig = assessmentId
+    ? ASSESSMENT_CONFIGS.find((a) => a.id === assessmentId) || null
+    : null;
+
+  const nextAssessmentId = assessmentId ? getNextAssessmentId(assessmentId) : null;
+  const nextAssessmentConfig = nextAssessmentId
+    ? ASSESSMENT_CONFIGS.find((a) => a.id === nextAssessmentId) || null
+    : null;
 
   useEffect(() => {
     async function loadSummary() {
-      const data = await completeSession(sessionId);
+      let data: SessionSummary;
+      try {
+        data = await completeSession(sessionId);
+      } catch {
+        data = {
+          deckId,
+          cardsReviewed: paramTotal ? parseInt(paramTotal, 10) : 0,
+          accuracy: paramTotal && paramCorrect ? parseInt(paramCorrect, 10) / parseInt(paramTotal, 10) : 0,
+          streak: 1,
+          dueNext: '',
+          mode: 'mastery',
+        };
+      }
       setSummary(data);
 
-      // Gamification
-      const stars = calculateSessionStars(data.accuracy);
-      setStarsEarned(stars);
-
-      const { bonusXP: xp } = recordSessionCompletion(data.accuracy, data.cardsReviewed);
-      setBonusXP(xp);
-
-      const stats = getUserStats();
-      setUserStats(stats);
-
-      // Accuracy count-up animation
       const targetPercent = Math.round(data.accuracy * 100);
       let current = 0;
-      const stepTime = 15;
-      const totalSteps = 40;
-      const increment = targetPercent / totalSteps;
-
       const timer = setInterval(() => {
-        current += increment;
+        current += 2;
         if (current >= targetPercent) {
           setAnimatedAccuracy(targetPercent);
           clearInterval(timer);
         } else {
-          setAnimatedAccuracy(Math.round(current));
+          setAnimatedAccuracy(current);
         }
-      }, stepTime);
-
-      // Sequenced reveals
-      setTimeout(() => setStarsRevealed(true), 300);
-      setTimeout(() => setGamificationRevealed(true), 650);
+      }, 15);
 
       return () => clearInterval(timer);
     }
 
     loadSummary();
-  }, [sessionId]);
+  }, [sessionId, deckId, paramTotal, paramCorrect]);
 
-  // Loading state
   if (!summary) {
     return (
-      <div
-        className="min-h-dvh flex items-center justify-center"
-        style={{ background: 'var(--color-bg)' }}
-      >
+      <div className="min-h-dvh flex items-center justify-center bg-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: 'var(--color-text)', borderTopColor: 'transparent' }}
-          />
-          <span className="text-[14px]" style={{ color: 'var(--color-text-secondary)' }}>
-            Calculating session statistics…
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-text)] border-t-transparent animate-spin" />
+          <span className="text-[14px] text-[var(--color-text-secondary)]">
+            Finalizing assessment results…
           </span>
         </div>
       </div>
     );
   }
 
-  const motivationalMessage = getMotivationalMessage(summary.accuracy);
   const accuracyPercent = Math.round(summary.accuracy * 100);
+  const isPassed = accuracyPercent >= 70;
+  const totalCount = paramTotal ? parseInt(paramTotal, 10) : summary.cardsReviewed;
+  const correctCount = paramCorrect
+    ? parseInt(paramCorrect, 10)
+    : Math.round(summary.cardsReviewed * summary.accuracy);
 
   return (
-    <main
-      className="min-h-dvh flex flex-col p-6 sm:p-12 max-w-xl mx-auto w-full gap-8"
-      style={{ background: 'var(--color-bg)' }}
-    >
-      {/* Header */}
+    <main className="min-h-dvh flex flex-col p-6 sm:p-12 max-w-xl mx-auto w-full gap-8 bg-[var(--color-bg)]">
+      {/* Top Header */}
       <header className="flex items-center justify-between pt-4">
         <Link
           href={`/decks/${deckId}`}
@@ -247,10 +112,10 @@ export default function SessionSummaryPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
-          <span>Back to Deck</span>
+          <span>Deck Curriculum</span>
         </Link>
-        <Badge variant="success" size="sm" className="capitalize">
-          {summary.mode} Session Complete
+        <Badge variant={isPassed ? 'success' : 'neutral'} size="sm">
+          {assessmentConfig ? `${assessmentConfig.title} Complete` : 'Session Complete'}
         </Badge>
         <Link
           href="/"
@@ -260,98 +125,100 @@ export default function SessionSummaryPage() {
         </Link>
       </header>
 
-      {/* Stars hero */}
-      <section className="flex flex-col items-center gap-5 pt-2">
-        <StarRating earned={starsEarned} revealed={starsRevealed} />
-        {userStats && (
-          <XPPill
-            bonusXP={bonusXP}
-            totalXP={userStats.xp}
-            level={userStats.level}
-            revealed={gamificationRevealed}
-          />
-        )}
-      </section>
-
-      {/* Accuracy count-up */}
-      <section className="flex flex-col items-center gap-2 animate-count-up">
-        <div
-          className="text-[64px] sm:text-[72px] font-extrabold tracking-tight leading-none"
-          style={{ color: 'var(--color-text)' }}
-        >
-          {animatedAccuracy}%
-        </div>
-        <span
-          className="text-[13px] font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--color-text-secondary)' }}
-        >
-          Retention Accuracy
+      {/* Main Assessment Score Card */}
+      <section className="flex flex-col items-center text-center pt-4 space-y-4">
+        <span className="text-[12px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">
+          {assessmentConfig ? assessmentConfig.subtitle : 'Active Recall Assessment'}
         </span>
-        <p
-          className="text-[15px] text-center max-w-xs mt-1 font-medium animate-fade-slide-up"
-          style={{ color: 'var(--color-text-secondary)', animationDelay: '900ms' }}
-        >
-          {motivationalMessage}
+
+        <div className="flex flex-col items-center">
+          <div className="text-[64px] sm:text-[80px] font-bold tracking-tight leading-none text-[var(--color-text)]">
+            {animatedAccuracy}%
+          </div>
+          <span className="text-[14px] font-semibold text-[var(--color-text-secondary)] mt-2">
+            {correctCount} of {totalCount} Questions Correct
+          </span>
+        </div>
+
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[13px] font-semibold border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)]">
+          <span className={isPassed ? 'text-[var(--color-success)]' : 'text-amber-500'}>
+            {isPassed ? '✓ Passed Assessment' : '⚠️ Practice Recommended'}
+          </span>
+        </div>
+
+        <p className="text-[14px] text-[var(--color-text-secondary)] max-w-sm leading-relaxed">
+          {getPerformanceMessage(summary.accuracy)}
         </p>
       </section>
 
-      {/* Stats grid */}
-      <section
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full animate-fade-slide-up"
-        style={{ animationDelay: '500ms' }}
-      >
-        <StatCard label="Reviewed" value={String(summary.cardsReviewed)} sub="cards" />
-        <StatCard
-          label="Accuracy"
-          value={`${accuracyPercent}%`}
-          valueColor={
-            accuracyPercent === 100
-              ? 'var(--color-success)'
-              : accuracyPercent >= 70
-              ? 'var(--color-text)'
-              : 'var(--color-danger)'
-          }
-        />
-        <StatCard
-          label="Streak"
-          value={`🔥 ${summary.streak}d`}
-          valueColor="var(--color-warning)"
-        />
-        <StatCard
-          label="Stars"
-          value={'⭐'.repeat(starsEarned) + '·'.repeat(3 - starsEarned)}
-          sub={`+${bonusXP} XP`}
-          subColor="var(--color-text-secondary)"
-        />
+      {/* Academic Metrics Grid */}
+      <section className="grid grid-cols-3 gap-3 w-full">
+        <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
+          <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
+            Questions
+          </span>
+          <span className="text-[20px] font-bold text-[var(--color-text)]">
+            {totalCount}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
+          <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
+            Correct
+          </span>
+          <span className="text-[20px] font-bold text-[var(--color-text)]">
+            {correctCount}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
+          <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
+            Status
+          </span>
+          <span className={`text-[16px] font-bold ${isPassed ? 'text-[var(--color-success)]' : 'text-amber-500'}`}>
+            {isPassed ? 'Passed' : 'Review'}
+          </span>
+        </div>
       </section>
 
-      {/* Action buttons */}
-      <footer
-        className="flex flex-col gap-3 pb-4 mt-auto animate-fade-slide-up"
-        style={{ animationDelay: '800ms' }}
-      >
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link href={`/decks/${deckId}/review?mode=${summary.mode}`} className="flex-1">
-            <Button variant="primary" size="lg" fullWidth>
-              Review Again
+      {/* Linear Next Actions */}
+      <footer className="flex flex-col gap-3 pb-4 mt-auto pt-6 border-t border-[var(--color-border)]">
+        {nextAssessmentConfig ? (
+          <Link
+            href={`/decks/${deckId}/review?assessment=${nextAssessmentConfig.id}`}
+            className="w-full"
+          >
+            <Button variant="primary" size="lg" fullWidth className="text-[15px] font-bold">
+              Proceed to {nextAssessmentConfig.title} →
+            </Button>
+          </Link>
+        ) : (
+          <Link href={`/decks/${deckId}`} className="w-full">
+            <Button variant="primary" size="lg" fullWidth className="text-[15px] font-bold">
+              Curriculum Complete · Back to Deck →
+            </Button>
+          </Link>
+        )}
+
+        <div className="flex gap-3">
+          <Link
+            href={
+              assessmentId
+                ? `/decks/${deckId}/review?assessment=${assessmentId}`
+                : `/decks/${deckId}/review?mode=cram`
+            }
+            className="flex-1"
+          >
+            <Button variant="secondary" size="md" fullWidth>
+              Retake Assessment
             </Button>
           </Link>
           <Link href={`/decks/${deckId}`} className="flex-1">
-            <Button variant="secondary" size="lg" fullWidth>
-              Back to Deck
-            </Button>
-          </Link>
-          <Link href="/" className="flex-1">
-            <Button variant="secondary" size="lg" fullWidth>
-              Dashboard
+            <Button variant="secondary" size="md" fullWidth>
+              Deck Overview
             </Button>
           </Link>
         </div>
-        <Link href="/profile" className="w-full">
-          <Button variant="ghost" size="md" fullWidth>
-            View Profile &amp; Badges →
-          </Button>
-        </Link>
       </footer>
     </main>
   );

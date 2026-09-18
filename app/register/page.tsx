@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { registerUser, continueAsGuest, AVATAR_OPTIONS } from '@/lib/auth';
-import { ThemeToggle, BackButton } from '@/components/ui';
+import { ThemeToggle, BackButton, CadenceLogo } from '@/components/ui';
 
 function getPasswordStrength(password: string): { label: string; color: string; width: string; level: number } {
   if (password.length === 0) return { label: '', color: '', width: '0%', level: 0 };
@@ -111,10 +111,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-10">
-            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[16px]">
-              C
-            </div>
-            <span className="font-bold text-[19px] tracking-tight text-[var(--color-text)]">Cadence</span>
+            <CadenceLogo size={32} showText />
           </div>
 
           {/* Heading */}
