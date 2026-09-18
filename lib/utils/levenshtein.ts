@@ -96,6 +96,17 @@ export function evaluateStudentAnswer(studentInput: string, expectedAnswer: stri
     return { isMatch: true, matchType: 'exact', similarity: 1.0 };
   }
 
+  // 3. Accent/diacritic tolerance (e.g. `corazon` for `corazón`)
+  const stripAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (stripAccents(normStudent) === stripAccents(normExpected)) {
+    return {
+      isMatch: true,
+      matchType: 'typo',
+      similarity: 0.95,
+      message: 'Correct concept! (Watch out for accent marks)',
+    };
+  }
+
   // 3. Typo tolerance using Levenshtein distance
   const distance = levenshteinDistance(normStudent, normExpected);
   const similarity = stringSimilarity(normStudent, normExpected);

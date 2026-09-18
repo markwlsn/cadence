@@ -39,7 +39,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       <button
         type="button"
         aria-label="Toggle theme"
-        className={`w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors ${className}`}
+        className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors ${className}`}
       >
         <span className="w-4 h-4 opacity-0" />
       </button>
@@ -52,7 +52,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       onClick={toggleTheme}
       aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
       title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
-      className={`w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors cursor-pointer ${className}`}
+      className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors cursor-pointer ${className}`}
     >
       {theme === 'light' ? (
         /* Moon Icon (switch to dark) */

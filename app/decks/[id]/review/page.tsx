@@ -267,7 +267,7 @@ export default function ReviewSessionPage() {
       </main>
 
       {/* Footer info: Keyboard & Gesture hints */}
-      <footer className="py-3 px-6 text-center text-[12px] text-[var(--color-text-secondary)] border-t border-[var(--color-border)] opacity-70">
+      <footer className="py-3 px-6 text-center text-[12px] text-[var(--color-text-secondary)] border-t border-[var(--color-border)] opacity-70 pb-[max(12px,env(safe-area-inset-bottom,12px))]">
         <span className="hidden sm:inline">
           Tap card or press Space to flip · Keyboard: 1 Again, 2 Hard, 3 Good, 4 Easy · Swipe left/right
         </span>

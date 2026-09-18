@@ -198,3 +198,29 @@ export function logoutUser(): User {
   saveCurrentUser(newGuest);
   return newGuest;
 }
+
+/**
+ * Permanently delete the current user account and purge study data
+ * Compliance: Apple App Store Review Guideline 5.1.1(v) & GDPR
+ */
+export function deleteAccountAndData(): User {
+  if (typeof window !== 'undefined') {
+    try {
+      const current = getCurrentUser();
+      if (!current.isGuest && current.email) {
+        const rawDb = localStorage.getItem(USERS_DB_KEY);
+        if (rawDb) {
+          const users = JSON.parse(rawDb) as Array<{ email?: string }>;
+          const filtered = users.filter((u) => u.email?.toLowerCase() !== current.email?.toLowerCase());
+          localStorage.setItem(USERS_DB_KEY, JSON.stringify(filtered));
+        }
+      }
+      localStorage.removeItem('cadence_user_stats');
+      window.dispatchEvent(new CustomEvent('cadence_stats_updated', { detail: null }));
+    } catch (e) {
+      console.error('Error during account deletion:', e);
+    }
+  }
+  return logoutUser();
+}
+

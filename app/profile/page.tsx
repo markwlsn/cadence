@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getCurrentUser, updateUserProfile, logoutUser, AVATAR_OPTIONS, type User } from '@/lib/auth';
+import { getCurrentUser, updateUserProfile, logoutUser, deleteAccountAndData, AVATAR_OPTIONS, type User } from '@/lib/auth';
 import { getUserStats, updateDailyGoal, ALL_BADGES, getLevelDetails, type UserStats } from '@/lib/gamification';
 import { ThemeToggle } from '@/components/ui';
 
@@ -50,6 +50,13 @@ export default function ProfilePage() {
   const handleSignOut = () => {
     logoutUser();
     router.push('/login');
+  };
+
+  const handleDeleteAccount = () => {
+    if (typeof window !== 'undefined' && window.confirm('Are you sure you want to delete your account and erase all study statistics? This action cannot be undone.')) {
+      deleteAccountAndData();
+      router.push('/login');
+    }
   };
 
   if (!mounted || !user || !stats) {
@@ -371,12 +378,21 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full h-12 rounded-[var(--radius-md)] bg-transparent border border-[var(--color-border)] text-[var(--color-danger)] font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-danger)]/5 hover:border-[var(--color-danger)]/30 active:scale-[0.98] transition-all"
+            className="w-full h-12 rounded-[var(--radius-md)] bg-transparent border border-[var(--color-border)] text-[var(--color-danger)] font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-danger)]/5 hover:border-[var(--color-danger)]/30 active:scale-[0.98] transition-all cursor-pointer"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
             Sign Out
+          </button>
+
+          {/* Delete Account & Purge Data (Apple App Store Guideline 5.1.1(v)) */}
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            className="w-full text-center text-[13px] text-[var(--color-danger)] opacity-70 hover:opacity-100 hover:underline py-2 transition-opacity cursor-pointer"
+          >
+            Delete Account & Erase All Data
           </button>
         </section>
 
