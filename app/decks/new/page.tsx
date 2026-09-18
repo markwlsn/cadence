@@ -129,12 +129,14 @@ export default function NewDeckPage() {
 
             {/* Source Type Selector */}
             <div>
-              <label className="block text-[13px] font-semibold text-[var(--color-text)] mb-2 uppercase tracking-wide">
+              <label className="block text-[12px] font-semibold text-[var(--color-text-secondary)] mb-2 uppercase tracking-wider">
                 Input Method
               </label>
               <SegmentedControl<SourceType>
                 name="source-type"
                 value={sourceType}
+                fullWidth
+                size="md"
                 onChange={(val) => {
                   setSourceType(val);
                   setFile(null);

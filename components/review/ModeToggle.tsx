@@ -22,6 +22,7 @@ export function ModeToggle({ mode, onChange, disabled = false }: ModeToggleProps
           { value: 'cram', label: 'Cram' },
         ]}
         size="sm"
+        fullWidth={false}
         aria-label="Select study mode"
       />
     </div>
