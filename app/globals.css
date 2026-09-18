@@ -8,9 +8,7 @@
   --surface: #FFFFFF;
   --text: #1D1D1F;
   --text-secondary: #6E6E73;
-  --accent: #0A84FF;
-  --accent-2: #34C759;
-  --accent-3: #FF9F0A;
+  --color-focus-ring: rgba(0, 0, 0, 0.12);
 
   /* Backgrounds */
   --color-bg: var(--bg);
@@ -18,9 +16,20 @@
   --color-surface-raised: var(--surface);
   --color-surface-overlay: rgba(0, 0, 0, 0.04);
 
-  /* Accent (iOS Blue) */
-  --color-accent: var(--accent);
-  --color-accent-hover: #0062cc;
+  /* Accent (Apple Monochrome) */
+  --accent: #000000;
+  --color-accent: #000000;
+  --color-accent-hover: #262626;
+
+  /* Button tokens (Apple Monochrome) */
+  --color-btn-primary-bg: #000000;
+  --color-btn-primary-text: #ffffff;
+  --color-btn-primary-hover: #262626;
+
+  --color-btn-secondary-bg: #f5f5f7;
+  --color-btn-secondary-text: #1d1d1f;
+  --color-btn-secondary-border: rgba(0, 0, 0, 0.12);
+  --color-btn-secondary-hover: #e8e8ed;
 
   /* Text */
   --color-text: var(--text);
@@ -33,8 +42,8 @@
   --color-border-strong: rgba(0, 0, 0, 0.16);
 
   /* Semantic */
-  --color-success: var(--accent-2);
-  --color-warning: var(--accent-3);
+  --color-success: #34c759;
+  --color-warning: #ff9f0a;
   --color-danger: #ff3b30;
   --color-info: #5ac8fa;
 
@@ -78,13 +87,26 @@
 
 :root[data-theme="dark"],
 html.dark {
+  --color-focus-ring: rgba(255, 255, 255, 0.25);
   --color-bg: #000000;
   --color-surface: #1c1c1e;
   --color-surface-raised: #2c2c2e;
   --color-surface-overlay: rgba(255, 255, 255, 0.05);
 
-  --color-accent: #0a84ff;
-  --color-accent-hover: #409cff;
+  /* Accent (Apple Monochrome) */
+  --accent: #ffffff;
+  --color-accent: #ffffff;
+  --color-accent-hover: #e5e5e7;
+
+  /* Button tokens (Apple Monochrome) */
+  --color-btn-primary-bg: #ffffff;
+  --color-btn-primary-text: #000000;
+  --color-btn-primary-hover: #e5e5e7;
+
+  --color-btn-secondary-bg: #1c1c1e;
+  --color-btn-secondary-text: #f5f5f7;
+  --color-btn-secondary-border: rgba(255, 255, 255, 0.16);
+  --color-btn-secondary-hover: #2c2c2e;
 
   --color-text: #f5f5f7;
   --color-text-secondary: #98989d;

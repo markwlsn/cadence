@@ -48,26 +48,25 @@ export default function LoginPage() {
     <div className="min-h-dvh flex bg-[var(--color-bg)]">
       {/* Left Hero Panel */}
       <div
-        className="hidden lg:flex flex-col justify-between w-[45%] min-h-dvh p-12 relative overflow-hidden"
+        className="hidden lg:flex flex-col justify-between w-[45%] min-h-dvh p-12 relative overflow-hidden border-r border-[var(--color-border)]"
         style={{
-          background: 'linear-gradient(145deg, #0A84FF 0%, #5E5CE6 55%, #BF5AF2 100%)',
+          background: 'linear-gradient(160deg, #111111 0%, #1c1c1e 60%, #2c2c2e 100%)',
         }}
       >
         <div
-          className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-20"
-          style={{ background: 'rgba(255,255,255,0.3)' }}
+          className="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10"
+          style={{ background: 'rgba(255,255,255,0.2)' }}
           aria-hidden="true"
         />
         <div
-          className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full opacity-15"
-          style={{ background: 'rgba(255,255,255,0.4)' }}
+          className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full opacity-10"
+          style={{ background: 'rgba(255,255,255,0.2)' }}
           aria-hidden="true"
         />
 
         <div className="flex items-center gap-3 relative z-10">
           <div
-            className="w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-[20px]"
-            style={{ background: 'rgba(255,255,255,0.25)', color: '#fff' }}
+            className="w-10 h-10 rounded-[12px] flex items-center justify-center font-bold text-[20px] bg-white text-black shadow-sm"
           >
             C
           </div>
@@ -115,7 +114,7 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md mx-auto w-full">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[16px]">
+            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[16px]">
               C
             </div>
             <span className="font-bold text-[19px] tracking-tight text-[var(--color-text)]">Cadence</span>
@@ -146,9 +145,9 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none focus:border-[var(--color-accent)]"
+                className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                 style={{ boxShadow: 'none' }}
-                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                 onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -171,7 +170,7 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   className="w-full h-12 px-4 pr-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
                 <button
@@ -212,7 +211,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading || isGuestLoading}
-              className="w-full h-12 mt-1 rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-accent-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 mt-1 rounded-[var(--radius-md)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-btn-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-sm)]"
             >
               {isLoading ? (
                 <>
@@ -235,7 +234,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGuest}
             disabled={isLoading || isGuestLoading}
-            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-[16px] flex items-center justify-center gap-2.5 hover:bg-[var(--color-surface-overlay)] hover:border-[var(--color-border-strong)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-[16px] flex items-center justify-center gap-2.5 hover:bg-[var(--color-surface-overlay)] hover:border-[var(--color-border-strong)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isGuestLoading ? (
               <>
@@ -252,7 +251,7 @@ export default function LoginPage() {
 
           <p className="text-center text-[14px] text-[var(--color-text-secondary)] mt-8">
             {'Don\'t have an account? '}
-            <Link href="/register" className="text-[var(--color-accent)] font-semibold hover:underline">
+            <Link href="/register" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
               Register
             </Link>
           </p>
@@ -265,8 +264,8 @@ export default function LoginPage() {
 function Spinner() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="animate-spin flex-shrink-0">
-      <circle cx="8" cy="8" r="6" stroke="white" strokeOpacity="0.3" strokeWidth="2"/>
-      <path d="M14 8a6 6 0 0 0-6-6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2"/>
+      <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }

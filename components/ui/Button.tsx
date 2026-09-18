@@ -15,20 +15,21 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary: [
-    'bg-[var(--color-accent)] text-white',
-    'hover:bg-[var(--color-accent-hover)]',
+    'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)]',
+    'hover:bg-[var(--color-btn-primary-hover)]',
     'active:scale-[0.98]',
+    'shadow-[var(--shadow-sm)]',
     'disabled:opacity-40 disabled:cursor-not-allowed',
   ].join(' '),
   secondary: [
-    'bg-[var(--color-surface)] text-[var(--color-text)]',
-    'border border-[var(--color-border-strong)]',
-    'hover:bg-[var(--color-surface-overlay)] hover:border-[var(--color-border)]',
+    'bg-[var(--color-btn-secondary-bg)] text-[var(--color-btn-secondary-text)]',
+    'border border-[var(--color-btn-secondary-border)]',
+    'hover:bg-[var(--color-btn-secondary-hover)]',
     'active:scale-[0.98]',
     'disabled:opacity-40 disabled:cursor-not-allowed',
   ].join(' '),
   ghost: [
-    'bg-transparent text-[var(--color-accent)]',
+    'bg-transparent text-[var(--color-text)]',
     'hover:bg-[var(--color-surface-overlay)]',
     'active:scale-[0.98]',
     'disabled:opacity-40 disabled:cursor-not-allowed',

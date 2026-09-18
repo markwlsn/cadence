@@ -88,13 +88,7 @@ function XPPill({ bonusXP, totalXP, level, revealed }: XPPillProps) {
       style={{ animationDelay: '700ms' }}
     >
       <div
-        className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-[15px]"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,159,10,0.13) 0%, rgba(255,159,10,0.26) 100%)',
-          border: '1.5px solid rgba(255,159,10,0.4)',
-          color: '#ff9f0a',
-          boxShadow: '0 2px 12px rgba(255,159,10,0.18)',
-        }}
+        className="flex items-center gap-2 px-5 py-2 rounded-full font-bold text-[15px] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] shadow-[var(--shadow-sm)]"
       >
         <span style={{ fontSize: '18px' }}>&#9889;</span>
         +{bonusXP} XP Earned
@@ -105,7 +99,7 @@ function XPPill({ bonusXP, totalXP, level, revealed }: XPPillProps) {
           {totalXP.toLocaleString()} XP
         </span>
         {' · Level '}
-        <span className="font-semibold" style={{ color: 'var(--color-accent)' }}>
+        <span className="font-semibold" style={{ color: 'var(--color-text)' }}>
           {level}
         </span>
       </span>
@@ -225,7 +219,7 @@ export default function SessionSummaryPage() {
         <div className="flex flex-col items-center gap-3">
           <div
             className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: 'var(--color-accent)', borderTopColor: 'transparent' }}
+            style={{ borderColor: 'var(--color-text)', borderTopColor: 'transparent' }}
           />
           <span className="text-[14px]" style={{ color: 'var(--color-text-secondary)' }}>
             Calculating session statistics…
@@ -327,7 +321,7 @@ export default function SessionSummaryPage() {
           label="Stars"
           value={'⭐'.repeat(starsEarned) + '·'.repeat(3 - starsEarned)}
           sub={`+${bonusXP} XP`}
-          subColor="#ff9f0a"
+          subColor="var(--color-text-secondary)"
         />
       </section>
 

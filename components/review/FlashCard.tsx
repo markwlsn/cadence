@@ -129,7 +129,7 @@ function renderFormattedInlineText(text: string) {
       return (
         <code
           key={i}
-          className="px-1.5 py-0.5 mx-0.5 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] font-mono text-[0.88em] text-[var(--color-accent)] font-semibold"
+          className="px-1.5 py-0.5 mx-0.5 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] font-mono text-[0.88em] text-[var(--color-text)] font-semibold"
         >
           {part.slice(1, -1)}
         </code>
@@ -363,7 +363,7 @@ export function FlashCard({
                                 ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/30'
                                 : clozeStatus === 'incorrect'
                                 ? 'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/30'
-                                : 'bg-[var(--color-surface)] border-[var(--color-accent)] text-[var(--color-text)] focus:ring-[var(--color-accent)]/30',
+                                : 'bg-[var(--color-surface)] border-[var(--color-border-strong)] text-[var(--color-text)] focus:border-[var(--color-text)] focus:ring-[var(--color-focus-ring)]',
                             ].join(' ')}
                           />
                         );
@@ -400,7 +400,7 @@ export function FlashCard({
                       variant="ghost"
                       size="sm"
                       onClick={onFlip}
-                      className="text-[13px] text-[var(--color-accent)] hover:bg-[var(--color-surface)]"
+                      className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]"
                     >
                       Reveal Answer →
                     </Button>
@@ -408,7 +408,7 @@ export function FlashCard({
 
                   {/* Hint Display */}
                   {showHint && (
-                    <div className="text-[12px] text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-1.5 rounded-lg border border-[var(--color-accent)]/20 animate-count-up">
+                    <div className="text-[12px] text-[var(--color-text)] bg-[var(--color-surface-overlay)] px-3 py-1.5 rounded-lg border border-[var(--color-border)] animate-count-up">
                       💡 <strong>Hint:</strong> Starts with <strong>&quot;{clozeData.expectedAnswer.charAt(0).toUpperCase()}&quot;</strong> · {clozeData.expectedAnswer.length} characters
                     </div>
                   )}
@@ -601,7 +601,7 @@ export function FlashCard({
                     }}
                     placeholder="Formulate and type your answer here to test your recall..."
                     rows={2}
-                    className="w-full px-3.5 py-2 text-[14px] rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none shadow-sm transition-all"
+                    className="w-full px-3.5 py-2 text-[14px] rounded-[var(--radius-md)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:border-[var(--color-text)] focus:ring-1 focus:ring-[var(--color-text)] resize-none shadow-sm transition-all"
                   />
                   <div className="flex items-center justify-between mt-2 px-1">
                     <span className="text-[11px] text-[var(--color-text-tertiary)]">
@@ -623,7 +623,7 @@ export function FlashCard({
 
           {/* Bottom Flip Link */}
           <div className="text-center pt-2">
-            <span className="text-[13px] font-medium text-[var(--color-accent)] hover:underline inline-flex items-center gap-1">
+            <span className="text-[13px] font-medium text-[var(--color-text)] hover:opacity-75 inline-flex items-center gap-1 transition-opacity">
               Reveal Answer & Rate
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="m6 9 6 6 6-6" />
@@ -720,7 +720,7 @@ export function FlashCard({
                       </span>
                     </div>
                     <div>
-                      <span className="text-[11px] font-semibold text-[var(--color-accent)] uppercase tracking-wider block mb-1">
+                      <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
                         Expected Answer
                       </span>
                       <span className="font-semibold text-[var(--color-text)]">
@@ -796,8 +796,8 @@ export function FlashCard({
                         {basicAnswer}
                       </p>
                     </div>
-                    <div className="p-3.5 rounded-xl bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/30">
-                      <span className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-wider block mb-1">
+                    <div className="p-3.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)]">
+                      <span className="text-[11px] font-bold text-[var(--color-text)] uppercase tracking-wider block mb-1">
                         Model Answer
                       </span>
                       <p className="text-[14px] font-semibold text-[var(--color-text)] leading-relaxed break-words">
@@ -830,7 +830,7 @@ export function FlashCard({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
-                    className="text-[var(--color-accent)]"
+                    className="text-[var(--color-text)]"
                   >
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="16" x2="12" y2="12" />

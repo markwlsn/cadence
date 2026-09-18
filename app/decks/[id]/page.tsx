@@ -140,7 +140,7 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
               percent={masteryPercent}
               size={96}
               strokeWidth={8}
-              color="var(--color-accent-2)"
+              color="var(--color-text)"
               className="mb-4"
             />
             <h3 className="text-[18px] font-semibold text-[var(--color-text)]">
@@ -184,7 +184,7 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
                       </div>
                       <div className="w-full h-2 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
+                          className="h-full rounded-full bg-[var(--color-text)] transition-all duration-500"
                           style={{ width: `${ratio}%` }}
                         />
                       </div>

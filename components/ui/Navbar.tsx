@@ -84,13 +84,13 @@ export function Navbar() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* ── Left: Logo ── */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group" aria-label="Cadence home">
-          <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[15px] shadow-[var(--shadow-sm)] group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[15px] shadow-[var(--shadow-sm)] group-hover:scale-105 transition-transform">
             C
           </div>
           <span className="font-bold text-[18px] tracking-tight text-[var(--color-text)]">
             Cadence
           </span>
-          <span className="hidden sm:inline-block text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+          <span className="hidden sm:inline-block text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
             AI Reviewer
           </span>
         </Link>
@@ -108,7 +108,7 @@ export function Navbar() {
               className={[
                 'px-3 py-1.5 rounded-[var(--radius-sm)] text-[14px] font-medium transition-colors',
                 isActive(link.href)
-                  ? 'text-[var(--color-accent)] underline underline-offset-4 decoration-[var(--color-accent)]'
+                  ? 'text-[var(--color-text)] underline underline-offset-4 decoration-[var(--color-text)] font-semibold'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)]',
               ].join(' ')}
             >
@@ -122,7 +122,7 @@ export function Navbar() {
           {/* Quick Action: New Deck */}
           <Link
             href="/decks/new"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:bg-[var(--color-accent-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] text-[13px] font-semibold hover:bg-[var(--color-btn-primary-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
             title="Create a new flashcard deck"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -135,7 +135,7 @@ export function Navbar() {
           {mounted && user?.isGuest && (
             <Link
               href="/login"
-              className="hidden md:inline-block text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-colors px-2 py-1"
+              className="hidden md:inline-block text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-2 py-1"
             >
               Sign In
             </Link>
@@ -151,7 +151,7 @@ export function Navbar() {
             title={user?.name || 'Profile'}
             className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full flex items-center justify-center overflow-hidden bg-[var(--color-surface)] border transition-all shrink-0 font-semibold text-[var(--color-text-secondary)] text-[15px] ${
               pathname === '/profile'
-                ? 'border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/30'
+                ? 'border-[var(--color-text)] ring-2 ring-[var(--color-focus-ring)]'
                 : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
             }`}
           >
@@ -192,10 +192,10 @@ export function Navbar() {
           {/* Mobile stats row */}
           {mounted && stats !== null && (
             <div className="flex items-center gap-3 px-3 py-2 mb-1">
-              <span className="text-[13px] font-bold text-amber-500 dark:text-amber-400">
+              <span className="text-[13px] font-bold text-[var(--color-text)]">
                 🔥 {stats.streak} day streak
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[12px] font-semibold">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] border border-[var(--color-border)] text-[12px] font-semibold">
                 ⚡ Lv.{stats.level} · {stats.xp} XP
               </span>
             </div>
@@ -211,7 +211,7 @@ export function Navbar() {
               className={[
                 'px-3 py-2.5 rounded-[var(--radius-sm)] text-[15px] font-medium transition-colors',
                 isActive(link.href)
-                  ? 'text-[var(--color-accent)] bg-[var(--color-accent)]/8 font-semibold'
+                  ? 'text-[var(--color-text)] bg-[var(--color-surface-overlay)] font-semibold'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)]',
               ].join(' ')}
             >
@@ -232,7 +232,7 @@ export function Navbar() {
               <Link
                 href="/register"
                 onClick={() => setMobileOpen(false)}
-                className="flex-1 py-2 text-center text-[14px] font-semibold rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+                className="flex-1 py-2 text-center text-[14px] font-semibold rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] hover:bg-[var(--color-btn-primary-hover)] transition-colors"
               >
                 Register
               </Link>

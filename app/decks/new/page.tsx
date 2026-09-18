@@ -73,7 +73,7 @@ export default function NewDeckPage() {
         {isProcessing ? (
           /* Processing State */
           <div className="flex flex-col items-center justify-center py-16 text-center animate-count-up">
-            <div className="w-16 h-16 rounded-full border-4 border-[var(--color-accent)] border-t-transparent animate-spin mb-6" />
+            <div className="w-16 h-16 rounded-full border-4 border-[var(--color-text)] border-t-transparent animate-spin mb-6" />
             <h2 className="text-[22px] font-semibold text-[var(--color-text)] mb-2">
               Analyzing your notes…
             </h2>
@@ -123,7 +123,7 @@ export default function NewDeckPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Cognitive Psychology, Organic Chemistry..."
-                className="w-full px-4 py-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[16px] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] focus:bg-[var(--color-surface-raised)] transition-colors"
+                className="w-full px-4 py-3 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[16px] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-text)] focus:bg-[var(--color-surface-raised)] transition-colors"
               />
             </div>
 
@@ -162,7 +162,7 @@ export default function NewDeckPage() {
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   placeholder="Paste lecture notes, textbook summaries, definitions, or bullet points here..."
-                  className="w-full p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[15px] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] focus:bg-[var(--color-surface-raised)] transition-colors resize-y leading-relaxed font-sans"
+                  className="w-full p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[15px] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-text)] focus:bg-[var(--color-surface-raised)] transition-colors resize-y leading-relaxed font-sans"
                 />
               </div>
             ) : (
@@ -181,7 +181,7 @@ export default function NewDeckPage() {
                   className={[
                     'border-2 border-dashed rounded-[var(--radius-lg)] p-8 sm:p-12 text-center cursor-pointer transition-all',
                     isDragging
-                      ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
+                      ? 'border-[var(--color-text)] bg-[var(--color-surface-overlay)]'
                       : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-overlay)]',
                   ].join(' ')}
                 >
@@ -193,7 +193,7 @@ export default function NewDeckPage() {
                     className="sr-only"
                   />
                   <div className="flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[var(--color-accent)] shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-[var(--color-surface-raised)] flex items-center justify-center text-[var(--color-text)] shadow-sm">
                       {sourceType === 'pdf' ? (
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>

@@ -45,9 +45,9 @@ export function ConfidenceRater({
               className={[
                 'flex-1 flex flex-col items-center justify-center py-2.5 px-1 rounded-[var(--radius-md)]',
                 'border transition-all duration-[var(--duration-fast)] select-none min-h-[52px]',
-                'focus-visible:outline-2 focus-visible:outline-[var(--color-accent)] focus-visible:outline-offset-2',
+                'focus-visible:outline-2 focus-visible:outline-[var(--color-text)] focus-visible:outline-offset-2',
                 isSelected
-                  ? 'bg-[var(--color-accent)] text-white border-[var(--color-accent)] shadow-[var(--shadow-sm)]'
+                  ? 'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] border-[var(--color-btn-primary-bg)] shadow-[var(--shadow-sm)]'
                   : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-overlay)]',
                 disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95',
               ].join(' ')}
@@ -55,7 +55,7 @@ export function ConfidenceRater({
               <span className="text-[16px] font-semibold leading-tight">{label}</span>
               <span
                 className={`text-[10px] mt-0.5 leading-tight ${
-                  isSelected ? 'text-white/80' : 'text-[var(--color-text-secondary)]'
+                  isSelected ? 'opacity-80' : 'text-[var(--color-text-secondary)]'
                 }`}
               >
                 {desc}

@@ -16,7 +16,7 @@ export function ProgressRing({
   percent,
   size = 56,
   strokeWidth = 4,
-  color = 'var(--color-accent)',
+  color = 'var(--color-text)',
   trackColor = 'var(--color-border)',
   label,
   showPercent = true,

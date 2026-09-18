@@ -82,7 +82,7 @@ export default function OnboardingPage() {
       {/* Top Header & Skip */}
       <header className="flex items-center justify-between pt-4">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-[8px] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[14px]">
+          <div className="w-7 h-7 rounded-[8px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[14px]">
             C
           </div>
           <span className="font-semibold text-[17px] tracking-tight">Cadence</span>
@@ -98,7 +98,7 @@ export default function OnboardingPage() {
 
       {/* Main Content Card */}
       <section className="my-auto py-8">
-        <span className="inline-block text-[13px] font-semibold text-[var(--color-accent)] uppercase tracking-wider mb-3">
+        <span className="inline-block text-[13px] font-semibold text-[var(--color-text)] uppercase tracking-wider mb-3">
           {step.tag}
         </span>
         <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight text-[var(--color-text)] leading-tight mb-4">
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
               aria-label={`Go to step ${idx + 1}`}
               className={`h-2 rounded-full transition-all duration-300 ${
                 idx === currentStep
-                  ? 'w-6 bg-[var(--color-accent)]'
+                  ? 'w-6 bg-[var(--color-text)]'
                   : 'w-2 bg-[var(--color-border-strong)] opacity-50 hover:opacity-100'
               }`}
             />

@@ -140,7 +140,7 @@ export default function ReviewSessionPage() {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-text)] border-t-transparent animate-spin" />
           <span className="text-[14px] text-[var(--color-text-secondary)]">
             Loading review queue…
           </span>
@@ -153,50 +153,54 @@ export default function ReviewSessionPage() {
   if (cards.length === 0) {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center p-6 text-center bg-[var(--color-bg)]">
-        <div className="w-14 h-14 rounded-full bg-[var(--color-success)]/10 text-[var(--color-success)] flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] flex items-center justify-center mb-4">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 className="text-[24px] font-bold text-[var(--color-text)] mb-2">
-          {mode === 'mastery' ? 'All caught up!' : 'No cards in this deck'}
+        <h2 className="text-[22px] font-semibold text-[var(--color-text)] mb-2">
+          Review queue complete!
         </h2>
         <p className="text-[15px] text-[var(--color-text-secondary)] max-w-sm mb-6">
           {mode === 'mastery'
-            ? 'No cards are due right now in Mastery mode. Switch to Cram mode if you want to review all cards right away.'
-            : 'Add notes or cards to start reviewing.'}
+            ? 'You have zero cards due for review right now. Switch to Cram mode to review anyway.'
+            : 'No cards in this deck.'}
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex items-center gap-3">
+          <Link href={`/decks/${deckId}`}>
+            <Button variant="secondary" size="md">
+              Back to Deck
+            </Button>
+          </Link>
           {mode === 'mastery' && (
-            <Button variant="primary" onClick={() => handleModeChange('cram')}>
-              Switch to Cram Mode
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => handleModeChange('cram')}
+            >
+              Cram All Cards
             </Button>
           )}
-          <Link href={`/decks/${deckId}`}>
-            <Button variant="secondary">Back to Deck</Button>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost">Dashboard</Button>
-          </Link>
         </div>
       </div>
     );
   }
 
-  const progressPercent = Math.round(((currentIndex) / cards.length) * 100);
+  const progressPercent = ((currentIndex + 1) / cards.length) * 100;
 
   return (
-    <div className="min-h-dvh flex flex-col justify-between bg-[var(--color-bg)] overflow-hidden">
-      {/* Top Header */}
-      <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+    <div className="min-h-dvh flex flex-col bg-[var(--color-bg)] select-none">
+      {/* Review Header */}
+      <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+          {/* Back button + Deck Title */}
+          <div className="flex items-center gap-2 min-w-0">
             <Link
               href={`/decks/${deckId}`}
-              aria-label="Back to deck"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-sm)] text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors"
+              className="inline-flex items-center gap-1 text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors shrink-0"
+              aria-label="Back to deck overview"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
               <span>Deck</span>
@@ -221,7 +225,7 @@ export default function ReviewSessionPage() {
         {/* Linear progress bar */}
         <div className="w-full h-1 bg-[var(--color-border)]">
           <div
-            className="h-full bg-[var(--color-accent)] transition-all duration-300"
+            className="h-full bg-[var(--color-text)] transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -255,7 +259,7 @@ export default function ReviewSessionPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleFlip}
-                className="text-[13px] text-[var(--color-accent)]"
+                className="text-[13px] text-[var(--color-text)] hover:opacity-80"
               >
                 Reveal Answer (or press Space) →
               </Button>

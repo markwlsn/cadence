@@ -75,7 +75,7 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center gap-4">
           <svg width="32" height="32" viewBox="0 0 16 16" fill="none" aria-label="Loading" className="animate-spin">
             <circle cx="8" cy="8" r="6" stroke="var(--color-border-strong)" strokeWidth="2"/>
-            <path d="M14 8a6 6 0 0 0-6-6" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M14 8a6 6 0 0 0-6-6" stroke="var(--color-text)" strokeWidth="2" strokeLinecap="round"/>
           </svg>
           <p className="text-[15px] text-[var(--color-text-secondary)]">Loading profile…</p>
         </div>
@@ -88,42 +88,50 @@ export default function ProfilePage() {
     levelInfo.level === 1 ? 0 :
     levelInfo.level === 2 ? 500 :
     levelInfo.level === 3 ? 1200 :
-    levelInfo.level === 4 ? 2500 :
-    levelInfo.level === 5 ? 4500 : 7500
+    levelInfo.level === 4 ? 2200 :
+    levelInfo.level === 5 ? 3500 : 5000
   );
-  const xpForLevel = levelInfo.nextLevelXP - (
+  const xpForLevel = (levelInfo.nextLevelXP === 999999 ? stats.xp : levelInfo.nextLevelXP) - (
     levelInfo.level === 1 ? 0 :
     levelInfo.level === 2 ? 500 :
     levelInfo.level === 3 ? 1200 :
-    levelInfo.level === 4 ? 2500 :
-    levelInfo.level === 5 ? 4500 : 7500
+    levelInfo.level === 4 ? 2200 :
+    levelInfo.level === 5 ? 3500 : 5000
   );
 
   const unlockedBadgeIds = new Set(stats.badges.map((b) => b.id));
 
   return (
-    <div className="min-h-dvh bg-[var(--color-bg)]">
-      {/* Top header */}
-      <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+    <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
+      {/* Header bar */}
+      <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <BackButton href="/" label="Dashboard" />
           <h1 className="text-[17px] font-semibold text-[var(--color-text)]">Profile</h1>
           <ThemeToggle />
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pb-24">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
         {/* Guest banner */}
         {user.isGuest && (
-          <div className="mt-4 px-4 py-3.5 rounded-[var(--radius-md)] flex items-start gap-3" style={{ background: 'rgba(255,159,10,0.1)', border: '1px solid rgba(255,159,10,0.25)' }}>
-            <span className="text-[20px] flex-shrink-0">🎓</span>
+          <div
+            role="region"
+            aria-label="Guest account notice"
+            className="p-4 rounded-[var(--radius-md)] flex items-start gap-3 mb-6"
+            style={{
+              background: 'rgba(255, 159, 10, 0.08)',
+              border: '1px solid rgba(255, 159, 10, 0.25)',
+            }}
+          >
+            <span className="text-[20px] flex-shrink-0 leading-none">⚠️</span>
             <div>
               <p className="text-[14px] font-medium text-[var(--color-text)] leading-snug">
                 {'You\'re studying as a guest.'}
               </p>
               <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
                 {'Register to save your progress permanently. '}
-                <Link href="/register" className="text-[var(--color-accent)] font-semibold hover:underline">
+                <Link href="/register" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
                   Create account →
                 </Link>
               </p>
@@ -147,7 +155,7 @@ export default function ProfilePage() {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="text-[24px] font-bold text-[var(--color-text)] text-center bg-transparent border-b-2 border-transparent focus:border-[var(--color-accent)] focus:outline-none transition-colors px-2 pb-0.5 max-w-[240px]"
+              className="text-[24px] font-bold text-[var(--color-text)] text-center bg-transparent border-b-2 border-transparent focus:border-[var(--color-text)] focus:outline-none transition-colors px-2 pb-0.5 max-w-[240px]"
               aria-label="Your name"
             />
             <svg
@@ -170,8 +178,7 @@ export default function ProfilePage() {
           {/* Level badge */}
           <div className="flex items-center gap-2">
             <span
-              className="px-3 py-1 rounded-full text-[13px] font-semibold text-white"
-              style={{ background: 'linear-gradient(90deg, #0A84FF, #5E5CE6)' }}
+              className="px-3.5 py-1 rounded-full text-[13px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] shadow-[var(--shadow-sm)]"
             >
               Lv. {levelInfo.level} · {levelInfo.title}
             </span>
@@ -185,10 +192,9 @@ export default function ProfilePage() {
             </div>
             <div className="h-2 w-full rounded-full bg-[var(--color-surface)] overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-full transition-all duration-500 bg-[var(--color-text)]"
                 style={{
                   width: levelInfo.nextLevelXP === 999999 ? '100%' : `${Math.min(100, Math.round((xpInLevel / xpForLevel) * 100))}%`,
-                  background: 'linear-gradient(90deg, #0A84FF, #5E5CE6)',
                 }}
               />
             </div>
@@ -244,11 +250,11 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => setSelectedGoal(goal)}
                   aria-pressed={selectedGoal === goal}
-                  className="flex-1 h-12 rounded-[var(--radius-md)] font-semibold text-[15px] transition-all active:scale-95"
+                  className="flex-1 h-12 rounded-[var(--radius-md)] font-semibold text-[15px] transition-all active:scale-95 cursor-pointer"
                   style={{
-                    background: selectedGoal === goal ? 'var(--color-accent)' : 'var(--color-bg)',
-                    color: selectedGoal === goal ? 'white' : 'var(--color-text-secondary)',
-                    border: selectedGoal === goal ? '2px solid var(--color-accent)' : '2px solid var(--color-border)',
+                    background: selectedGoal === goal ? 'var(--color-btn-primary-bg)' : 'var(--color-bg)',
+                    color: selectedGoal === goal ? 'var(--color-btn-primary-text)' : 'var(--color-text-secondary)',
+                    border: selectedGoal === goal ? '2px solid var(--color-btn-primary-bg)' : '2px solid var(--color-border)',
                   }}
                 >
                   {goal}
@@ -278,11 +284,11 @@ export default function ProfilePage() {
                   onClick={() => setSelectedAvatar(emoji)}
                   aria-label={`Select avatar ${emoji}`}
                   aria-pressed={selectedAvatar === emoji}
-                  className="h-12 rounded-[var(--radius-md)] flex items-center justify-center text-[22px] transition-all active:scale-90"
+                  className="h-12 rounded-[var(--radius-md)] flex items-center justify-center text-[22px] transition-all active:scale-90 cursor-pointer"
                   style={{
-                    background: selectedAvatar === emoji ? 'rgba(10,132,255,0.12)' : 'var(--color-bg)',
-                    border: selectedAvatar === emoji ? '2px solid var(--color-accent)' : '2px solid transparent',
-                    boxShadow: selectedAvatar === emoji ? '0 0 0 2px rgba(10,132,255,0.2)' : 'none',
+                    background: selectedAvatar === emoji ? 'var(--color-surface-overlay)' : 'var(--color-bg)',
+                    border: selectedAvatar === emoji ? '2px solid var(--color-text)' : '2px solid transparent',
+                    boxShadow: selectedAvatar === emoji ? '0 0 0 2px var(--color-border-strong)' : 'none',
                   }}
                 >
                   {emoji}
@@ -341,7 +347,7 @@ export default function ProfilePage() {
                   placeholder="+1 (555) 000-0000"
                   className="w-full h-11 px-3.5 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
@@ -361,7 +367,7 @@ export default function ProfilePage() {
                   placeholder="e.g. 20"
                   className="w-full h-11 px-3.5 rounded-[var(--radius-md)] bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
@@ -431,19 +437,19 @@ export default function ProfilePage() {
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-accent-hover)] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-btn-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-[var(--shadow-sm)] cursor-pointer"
           >
             {isSaving ? (
               <>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="animate-spin">
-                  <circle cx="8" cy="8" r="6" stroke="white" strokeOpacity="0.3" strokeWidth="2"/>
-                  <path d="M14 8a6 6 0 0 0-6-6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2"/>
+                  <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 Saving…
               </>
             ) : saveSuccess ? (
               <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
                 Saved!

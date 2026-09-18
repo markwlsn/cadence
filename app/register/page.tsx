@@ -111,7 +111,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-10">
-            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[16px]">
+            <div className="w-8 h-8 rounded-[10px] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] flex items-center justify-center font-bold text-[16px]">
               C
             </div>
             <span className="font-bold text-[19px] tracking-tight text-[var(--color-text)]">Cadence</span>
@@ -143,7 +143,7 @@ export default function RegisterPage() {
                 placeholder="Alex Johnson"
                 className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                 style={{ boxShadow: 'none' }}
-                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                 onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -163,7 +163,7 @@ export default function RegisterPage() {
                 placeholder="you@example.com"
                 className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                 style={{ boxShadow: 'none' }}
-                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                 onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -187,7 +187,7 @@ export default function RegisterPage() {
                   placeholder="+1 (555) 000-0000"
                   className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                   placeholder="e.g. 20"
                   className="w-full h-12 px-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
@@ -232,7 +232,7 @@ export default function RegisterPage() {
                   placeholder="At least 6 characters"
                   className="w-full h-12 px-4 pr-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] text-[16px] transition-colors focus:outline-none"
                   style={{ boxShadow: 'none' }}
-                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)'; e.target.style.borderColor = 'var(--color-accent)'; }}
+                  onFocus={(e) => { e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)'; e.target.style.borderColor = 'var(--color-text)'; }}
                   onBlur={(e) => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = 'var(--color-border)'; }}
                 />
                 <button
@@ -304,8 +304,8 @@ export default function RegisterPage() {
                     } else if (isMismatch) {
                       e.target.style.boxShadow = '0 0 0 3px rgba(255,59,48,0.18)';
                     } else {
-                      e.target.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.15)';
-                      e.target.style.borderColor = 'var(--color-accent)';
+                      e.target.style.boxShadow = '0 0 0 3px var(--color-focus-ring)';
+                      e.target.style.borderColor = 'var(--color-text)';
                     }
                   }}
                   onBlur={(e) => {
@@ -374,11 +374,11 @@ export default function RegisterPage() {
                     aria-pressed={selectedAvatar === emoji}
                     className="h-12 rounded-[var(--radius-md)] flex items-center justify-center text-[22px] transition-all active:scale-90"
                     style={{
-                      background: selectedAvatar === emoji ? 'rgba(10,132,255,0.12)' : 'var(--color-surface)',
+                      background: selectedAvatar === emoji ? 'var(--color-surface-overlay)' : 'var(--color-surface)',
                       border: selectedAvatar === emoji
-                        ? '2px solid var(--color-accent)'
+                        ? '2px solid var(--color-text)'
                         : '2px solid transparent',
-                      boxShadow: selectedAvatar === emoji ? '0 0 0 2px rgba(10,132,255,0.2)' : 'none',
+                      boxShadow: selectedAvatar === emoji ? '0 0 0 2px var(--color-border-strong)' : 'none',
                     }}
                   >
                     {emoji}
@@ -405,7 +405,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading || isGuestLoading}
-              className="w-full h-12 mt-1 rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-accent-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 mt-1 rounded-[var(--radius-md)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] font-semibold text-[16px] flex items-center justify-center gap-2 hover:bg-[var(--color-btn-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[var(--shadow-sm)]"
             >
               {isLoading ? (
                 <>
@@ -430,7 +430,7 @@ export default function RegisterPage() {
             type="button"
             onClick={handleGuest}
             disabled={isLoading || isGuestLoading}
-            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-[16px] flex items-center justify-center gap-2.5 hover:bg-[var(--color-surface-overlay)] hover:border-[var(--color-border-strong)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold text-[16px] flex items-center justify-center gap-2.5 hover:bg-[var(--color-surface-overlay)] hover:border-[var(--color-border-strong)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isGuestLoading ? (
               <>
@@ -447,7 +447,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-[14px] text-[var(--color-text-secondary)] mt-8">
             Already have an account?{' '}
-            <Link href="/login" className="text-[var(--color-accent)] font-semibold hover:underline">
+            <Link href="/login" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
               Sign In
             </Link>
           </p>
@@ -460,8 +460,8 @@ export default function RegisterPage() {
 function Spinner() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="animate-spin flex-shrink-0">
-      <circle cx="8" cy="8" r="6" stroke="white" strokeOpacity="0.3" strokeWidth="2"/>
-      <path d="M14 8a6 6 0 0 0-6-6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2"/>
+      <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }

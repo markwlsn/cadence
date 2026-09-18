@@ -69,16 +69,8 @@ function MasteryBar({ percent }: { percent: number }) {
       </div>
       <div className="h-1.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${percent}%`,
-            background:
-              percent >= 75
-                ? 'var(--color-success)'
-                : percent >= 40
-                ? 'var(--color-accent)'
-                : 'var(--color-warning)',
-          }}
+          className="h-full rounded-full transition-all duration-500 bg-[var(--color-text)]"
+          style={{ width: `${percent}%` }}
         />
       </div>
     </div>
@@ -223,7 +215,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                   <span className="text-[14px] font-bold tracking-tight text-[var(--color-text)]">
                     AI Study Synthesizer
                   </span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
                     FSRS Spaced Repetition
                   </span>
                 </div>
@@ -262,7 +254,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                   onClick={() => setFilterTab('active')}
                   className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
                     filterTab === 'active'
-                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      ? 'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] shadow-sm'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
                   }`}
                 >
@@ -273,7 +265,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                   onClick={() => setFilterTab('due')}
                   className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
                     filterTab === 'due'
-                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      ? 'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] shadow-sm'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
                   }`}
                 >
@@ -284,7 +276,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                   onClick={() => setFilterTab('archived')}
                   className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
                     filterTab === 'archived'
-                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      ? 'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] shadow-sm'
                       : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
                   }`}
                 >
@@ -411,7 +403,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                         {/* Deck Title */}
                         <div>
                           <Link href={`/decks/${deck.id}`}>
-                            <h3 className="text-[17px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-1">
+                            <h3 className="text-[17px] font-bold text-[var(--color-text)] group-hover:opacity-75 transition-opacity leading-snug line-clamp-1">
                               {deck.title}
                             </h3>
                           </Link>
@@ -474,7 +466,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
 
             <div className="h-2.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
               <div
-                className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700"
+                className="h-full rounded-full bg-[var(--color-text)] transition-all duration-700"
                 style={{ width: `${dailyGoalPercent}%` }}
               />
             </div>
@@ -495,7 +487,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                 </h3>
                 <Link
                   href="/profile"
-                  className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+                  className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
                 >
                   Profile →
                 </Link>
