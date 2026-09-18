@@ -98,7 +98,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 space-y-8">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-28 md:py-8 space-y-8">
         {/* Hero / Avatar Section */}
         <section className="flex flex-col items-center gap-4 pt-2">
           <div className="w-20 h-20 rounded-[var(--radius-lg)] flex items-center justify-center text-[48px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-md)]">

@@ -139,7 +139,7 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const displayName = mounted && user ? user.name.split(' ')[0] : 'Student';
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-6 pb-28 md:py-8 space-y-8">
       {/* ── 1. Clean Apple Reviewer Header ───────────────────────────────────── */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--color-border)]">
         <div>

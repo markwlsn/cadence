@@ -319,7 +319,7 @@ export default function WelcomeLanding() {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="py-8 bg-[var(--color-bg)]">
+      <footer className="pt-8 pb-28 md:py-8 bg-[var(--color-bg)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-[var(--color-text-secondary)]">
           <div className="flex items-center gap-2">
             <CadenceLogo size={20} />

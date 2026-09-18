@@ -38,6 +38,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { MobileTabBar } from "@/components/ui";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -68,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
+        <MobileTabBar />
       </body>
     </html>
   );
