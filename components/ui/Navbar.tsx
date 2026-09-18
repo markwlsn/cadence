@@ -83,12 +83,15 @@ export function Navbar() {
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         {/* ── Left: Logo ── */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group" aria-label="Cadence home">
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 group" aria-label="Cadence home">
           <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--color-accent)] flex items-center justify-center text-white font-bold text-[15px] shadow-[var(--shadow-sm)] group-hover:scale-105 transition-transform">
             C
           </div>
           <span className="font-bold text-[18px] tracking-tight text-[var(--color-text)]">
             Cadence
+          </span>
+          <span className="hidden sm:inline-block text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+            AI Reviewer
           </span>
         </Link>
 
@@ -114,32 +117,12 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* ── Right: Stats + Actions ── */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Streak */}
-          {mounted && stats !== null && (
-            <span
-              className="text-[13px] font-bold text-amber-500 dark:text-amber-400 hidden sm:inline-flex items-center gap-0.5"
-              title={`${stats.streak}-day study streak`}
-            >
-              🔥 {stats.streak}
-            </span>
-          )}
-
-          {/* XP Level Pill */}
-          {mounted && stats !== null && (
-            <span
-              className="hidden lg:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[12px] font-semibold"
-              title={`Level ${stats.level}: ${stats.title} — ${stats.xp} XP`}
-            >
-              ⚡ Lv.{stats.level} · {stats.xp} XP
-            </span>
-          )}
-
+        {/* ── Right: Clean Consolidated Actions ── */}
+        <div className="flex items-center gap-3 shrink-0">
           {/* Quick Action: New Deck */}
           <Link
             href="/decks/new"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:bg-[var(--color-accent-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:bg-[var(--color-accent-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
             title="Create a new flashcard deck"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

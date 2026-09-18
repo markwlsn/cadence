@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getUserStats } from '@/lib/gamification';
 import { getCurrentUser } from '@/lib/auth';
 import { deleteDeck, archiveDeck } from '@/lib/data';
-import { Badge, Button, ProgressRing } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
 import type { Deck, DeckStats } from '@/types';
 import type { UserStats } from '@/lib/gamification';
 import type { User } from '@/lib/auth';
@@ -18,13 +18,6 @@ interface Props {
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-
-const STUDY_QUOTES = [
-  'Every card you review is a step toward mastery. Keep going!',
-  'The secret of getting ahead is getting started.',
-  'Small daily improvements lead to stunning results over time.',
-  'Your future self will thank you for studying today.',
-];
 
 const SOURCE_LABELS: Record<string, string> = {
   pdf: '📄 PDF',
@@ -53,8 +46,8 @@ function StarRating({ count }: { count: 1 | 2 | 3 }) {
       {[1, 2, 3].map((n) => (
         <svg
           key={n}
-          width="13"
-          height="13"
+          width="12"
+          height="12"
           viewBox="0 0 24 24"
           fill={n <= count ? 'var(--color-warning)' : 'none'}
           stroke={n <= count ? 'var(--color-warning)' : 'var(--color-text-tertiary)'}
@@ -67,88 +60,27 @@ function StarRating({ count }: { count: 1 | 2 | 3 }) {
   );
 }
 
-// ─── Quick Stat Card ──────────────────────────────────────────────────────────
-
-function QuickStatCard({
-  icon,
-  label,
-  value,
-  sub,
-  progressPercent,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  sub?: string;
-  progressPercent?: number;
-}) {
-  return (
-    <div className="flex-1 min-w-0 p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] flex flex-col gap-1">
-      <div className="text-[22px] leading-none">{icon}</div>
-      <div className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mt-1">
-        {label}
-      </div>
-      <div className="text-[20px] font-bold text-[var(--color-text)] leading-tight truncate">
-        {value}
-      </div>
-      {sub && (
-        <div className="text-[11px] text-[var(--color-text-tertiary)] truncate">{sub}</div>
-      )}
-      {typeof progressPercent === 'number' && (
-        <div className="mt-1.5 h-1.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
-            style={{ width: `${Math.min(100, progressPercent)}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Mastery Progress Bar ─────────────────────────────────────────────────────
-
 function MasteryBar({ percent }: { percent: number }) {
-  const color =
-    percent >= 66
-      ? 'var(--color-success)'
-      : percent >= 33
-      ? 'var(--color-warning)'
-      : 'var(--color-accent)';
-
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-[var(--color-text-secondary)] font-medium">Mastery</span>
-        <span className="font-bold" style={{ color }}>
-          {percent}%
-        </span>
+      <div className="flex justify-between text-[11px] text-[var(--color-text-secondary)]">
+        <span>Retention</span>
+        <span className="font-semibold text-[var(--color-text)]">{percent}%</span>
       </div>
-      <div className="h-2 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${percent}%`, backgroundColor: color }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${percent}%`,
+            background:
+              percent >= 75
+                ? 'var(--color-success)'
+                : percent >= 40
+                ? 'var(--color-accent)'
+                : 'var(--color-warning)',
+          }}
         />
       </div>
-    </div>
-  );
-}
-
-// ─── Empty State ──────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div className="text-center py-20 px-6 border-2 border-dashed border-[var(--color-border-strong)] rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
-      <div className="text-[64px] mb-4 select-none">📚</div>
-      <h3 className="text-[20px] font-bold text-[var(--color-text)] mb-2">No decks yet</h3>
-      <p className="text-[15px] text-[var(--color-text-secondary)] max-w-sm mx-auto mb-6">
-        Create your first deck by uploading lecture notes, a PDF, or typing your own content.
-      </p>
-      <Link href="/decks/new">
-        <Button variant="primary" size="md">
-          + Create First Deck
-        </Button>
-      </Link>
     </div>
   );
 }
@@ -159,10 +91,9 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [quote, setQuote] = useState(STUDY_QUOTES[0]);
   const [greeting, setGreeting] = useState('Welcome');
   const [deckList, setDeckList] = useState<Deck[]>(decks);
-  const [filterTab, setFilterTab] = useState<'active' | 'archived'>('active');
+  const [filterTab, setFilterTab] = useState<'active' | 'due' | 'archived'>('active');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Build statsMap from serialised entries
@@ -170,7 +101,6 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
 
   useEffect(() => {
     setMounted(true);
-    setQuote(STUDY_QUOTES[Math.floor(Math.random() * STUDY_QUOTES.length)]);
     setGreeting(getGreeting());
     setUser(getCurrentUser());
     setStats(getUserStats());
@@ -218,16 +148,25 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
 
   const activeDecks = deckList.filter((d) => !d.isArchived);
   const archivedDecks = deckList.filter((d) => Boolean(d.isArchived));
-  const displayedDecks = filterTab === 'archived' ? archivedDecks : activeDecks;
 
-  // Find the deck with the most due cards for "Drill Weak Cards"
-  const drillDeck = activeDecks.reduce<Deck | null>((best, deck) => {
+  // Count total cards due across all active decks
+  const totalDueCards = activeDecks.reduce((sum, deck) => {
     const s = statsMap.get(deck.id);
-    const bestS = best ? statsMap.get(best.id) : null;
-    if (!s) return best;
-    if (!bestS || s.dueNow > bestS.dueNow) return deck;
-    return best;
-  }, null);
+    return sum + (s?.dueNow || 0);
+  }, 0);
+
+  const dueDecks = activeDecks.filter((d) => (statsMap.get(d.id)?.dueNow || 0) > 0);
+
+  // Decks to display based on selected tab
+  const displayedDecks =
+    filterTab === 'archived'
+      ? archivedDecks
+      : filterTab === 'due'
+      ? dueDecks
+      : activeDecks;
+
+  // Deck with the most due cards for quick review
+  const primaryReviewDeck = dueDecks.length > 0 ? dueDecks[0] : activeDecks[0];
 
   const currentStats = stats;
   const dailyGoalPercent = currentStats
@@ -237,292 +176,387 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const displayName = mounted && user ? user.name.split(' ')[0] : 'Scholar';
 
   return (
-    <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8 space-y-10">
-      {/* ── A. Hero Banner ─────────────────────────────────────────────────── */}
-      <section className="rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-accent)]/10 via-[var(--color-surface)] to-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[26px] sm:text-[30px] font-bold tracking-tight text-[var(--color-text)] leading-tight">
-              {greeting}, {displayName}! 👋
-            </h1>
-            <p className="mt-1.5 text-[14px] text-[var(--color-text-secondary)] italic max-w-md">
-              "{quote}"
-            </p>
-          </div>
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* ── 1. Clean Apple Reviewer Header ───────────────────────────────────── */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[var(--color-border)]">
+        <div>
+          <h1 className="text-[26px] sm:text-[32px] font-bold tracking-tight text-[var(--color-text)] leading-tight">
+            {greeting}, {displayName}!
+          </h1>
+          <p className="mt-1 text-[15px] text-[var(--color-text-secondary)]">
+            {totalDueCards > 0
+              ? `You have ${totalDueCards} card${totalDueCards === 1 ? '' : 's'} ready for review today across ${dueDecks.length} deck${dueDecks.length === 1 ? '' : 's'}.`
+              : activeDecks.length > 0
+              ? 'All caught up on your spaced repetition reviews for today.'
+              : 'Welcome to Cadence. Upload your notes to create your first active recall deck.'}
+          </p>
         </div>
 
-        {/* Daily Goal Progress */}
-        {mounted && currentStats && (
-          <div className="mt-6 space-y-2">
-            <div className="flex items-center justify-between text-[13px]">
-              <span className="font-semibold text-[var(--color-text)]">Daily Goal</span>
-              <span className="text-[var(--color-text-secondary)]">
-                <span className="font-bold text-[var(--color-text)]">
-                  {currentStats.todayStudiedCount}
-                </span>{' '}
-                / {currentStats.dailyGoal} cards reviewed today
-              </span>
+        {/* Quick Review / Create Action */}
+        <div className="flex items-center gap-3 shrink-0">
+          {totalDueCards > 0 && primaryReviewDeck ? (
+            <Link href={`/decks/${primaryReviewDeck.id}/review?mode=mastery`}>
+              <Button variant="primary" size="md" className="shadow-[var(--shadow-sm)]">
+                ⚡ Start Daily Review ({totalDueCards})
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/decks/new">
+              <Button variant="primary" size="md" className="shadow-[var(--shadow-sm)]">
+                ✨ Create Deck with AI
+              </Button>
+            </Link>
+          )}
+        </div>
+      </header>
+
+      {/* ── 2. Standard E-Learning 2-Column Workspace ────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* ── Left Column: Primary Review Workspace (8 cols) ────────────────── */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* AI Notes Ingestion Feature Card */}
+          <section className="relative overflow-hidden p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-[20px]">🧠</span>
+                  <span className="text-[14px] font-bold tracking-tight text-[var(--color-text)]">
+                    AI Study Synthesizer
+                  </span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+                    FSRS Spaced Repetition
+                  </span>
+                </div>
+                <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+                  Drop lecture PDFs, photos of handwritten notes, or paste summaries. Cadence writes concept flashcards, cloze deletions, and multiple-choice questions automatically.
+                </p>
+              </div>
+
+              <Link href="/decks/new" className="shrink-0">
+                <Button variant="secondary" size="sm" className="whitespace-nowrap">
+                  Upload Notes or PDF →
+                </Button>
+              </Link>
             </div>
+          </section>
+
+          {/* Study Decks Section */}
+          <section id="decks-section" aria-labelledby="decks-heading" className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-baseline gap-2.5">
+                <h2
+                  id="decks-heading"
+                  className="text-[20px] font-bold tracking-tight text-[var(--color-text)]"
+                >
+                  My Study Decks
+                </h2>
+                <span className="text-[13px] text-[var(--color-text-secondary)] font-medium">
+                  ({displayedDecks.length})
+                </span>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] w-fit">
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('active')}
+                  className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
+                    filterTab === 'active'
+                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  All ({activeDecks.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('due')}
+                  className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
+                    filterTab === 'due'
+                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  Due ({dueDecks.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterTab('archived')}
+                  className={`px-3 py-1 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
+                    filterTab === 'archived'
+                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  Archived ({archivedDecks.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Decks Grid or Empty State */}
+            {displayedDecks.length === 0 ? (
+              <div className="text-center py-12 px-6 border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+                <div className="text-[40px] mb-2 select-none">
+                  {filterTab === 'archived' ? '📦' : filterTab === 'due' ? '🎉' : '📚'}
+                </div>
+                <h3 className="text-[17px] font-bold text-[var(--color-text)] mb-1">
+                  {filterTab === 'archived'
+                    ? 'No archived decks'
+                    : filterTab === 'due'
+                    ? 'All caught up on due reviews!'
+                    : 'No study decks yet'}
+                </h3>
+                <p className="text-[13px] text-[var(--color-text-secondary)] max-w-sm mx-auto mb-5">
+                  {filterTab === 'archived'
+                    ? 'Decks you archive will appear here so you can revisit or restore them anytime.'
+                    : filterTab === 'due'
+                    ? 'All scheduled cards are completed. Switch to Cram mode anytime to review ahead.'
+                    : 'Create your first deck by uploading study notes, lecture slides, or pasting text.'}
+                </p>
+                {filterTab === 'active' && (
+                  <Link href="/decks/new">
+                    <Button variant="primary" size="sm">
+                      + Create First Deck
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {displayedDecks.map((deck) => {
+                  const s = statsMap.get(deck.id) ?? {
+                    deckId: deck.id,
+                    totalCards: 0,
+                    dueNow: 0,
+                    masteredCount: 0,
+                    accuracyLast7Days: 0,
+                  };
+
+                  const masteryPercent =
+                    s.totalCards > 0
+                      ? Math.round((s.masteredCount / s.totalCards) * 100)
+                      : 0;
+
+                  const stars = getStarCount(masteryPercent);
+
+                  return (
+                    <article
+                      key={deck.id}
+                      className="group flex flex-col justify-between p-4 sm:p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--color-border-strong)] transition-all duration-200"
+                    >
+                      <div className="space-y-3">
+                        {/* Source Tag & Due status */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="neutral" size="sm">
+                              {SOURCE_LABELS[deck.sourceType] ?? deck.sourceType}
+                            </Badge>
+                            {deck.isArchived && (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                Archived
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {s.dueNow > 0 ? (
+                              <Badge variant="accent" size="sm">
+                                {s.dueNow} due
+                              </Badge>
+                            ) : (
+                              <Badge variant="success" size="sm">
+                                Up to date
+                              </Badge>
+                            )}
+
+                            {/* Archive Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleToggleArchive(deck.id, Boolean(deck.isArchived));
+                              }}
+                              title={deck.isArchived ? 'Restore deck' : 'Archive deck'}
+                              aria-label={deck.isArchived ? 'Restore deck' : 'Archive deck'}
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors cursor-pointer"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="20" height="5" x="2" y="3" rx="1" />
+                                <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+                                <path d="m10 12 2 2 2-2" />
+                              </svg>
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              disabled={deletingId === deck.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteDeck(deck.id, deck.title);
+                              }}
+                              title="Delete deck permanently"
+                              aria-label="Delete deck permanently"
+                              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 6h18" />
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Deck Title */}
+                        <div>
+                          <Link href={`/decks/${deck.id}`}>
+                            <h3 className="text-[17px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors leading-snug line-clamp-1">
+                              {deck.title}
+                            </h3>
+                          </Link>
+                          <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+                            {s.totalCards} cards · {s.masteredCount} mastered
+                          </p>
+                        </div>
+
+                        {/* Retention Progress Bar */}
+                        <MasteryBar percent={masteryPercent} />
+
+                        {/* Star Rating */}
+                        <div className="flex items-center gap-1.5">
+                          <StarRating count={stars} />
+                          <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                            {masteryPercent >= 66
+                              ? 'High stability'
+                              : masteryPercent >= 33
+                              ? 'Building retention'
+                              : 'New cards'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex items-center gap-2">
+                        <Link href={`/decks/${deck.id}/review?mode=mastery`} className="flex-1">
+                          <Button variant="primary" size="sm" className="w-full text-[13px]">
+                            {s.dueNow > 0 ? `Review (${s.dueNow})` : 'Review Deck'}
+                          </Button>
+                        </Link>
+                        <Link href={`/decks/${deck.id}/review?mode=cram`}>
+                          <Button variant="secondary" size="sm" className="text-[13px]">
+                            Cram All
+                          </Button>
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* ── Right Column: Study Companion & Goals Sidebar (4 cols) ─────────── */}
+        <aside className="lg:col-span-4 space-y-6">
+          {/* Daily Goal Card */}
+          <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
+                Daily Goal
+              </h3>
+              {mounted && currentStats && (
+                <span className="text-[12px] font-semibold text-[var(--color-text-secondary)]">
+                  {currentStats.todayStudiedCount} / {currentStats.dailyGoal} cards
+                </span>
+              )}
+            </div>
+
             <div className="h-2.5 rounded-full bg-[var(--color-surface-overlay)] overflow-hidden">
               <div
                 className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700"
                 style={{ width: `${dailyGoalPercent}%` }}
               />
             </div>
-            {dailyGoalPercent >= 100 && (
-              <p className="text-[12px] font-semibold text-[var(--color-success)]">
-                ✅ Daily goal complete! Great work!
-              </p>
-            )}
-          </div>
-        )}
-      </section>
 
-      {/* ── B. Quick Stats Row ─────────────────────────────────────────────── */}
-      {mounted && currentStats && (
-        <section aria-label="Your stats">
-          <div className="flex flex-row gap-3 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
-            <QuickStatCard
-              icon="🔥"
-              label="Day Streak"
-              value={`${currentStats.streak} days`}
-            />
-            <QuickStatCard
-              icon="⚡"
-              label="Level"
-              value={`Lv.${currentStats.level}`}
-              sub={currentStats.title}
-            />
-            <QuickStatCard
-              icon="⭐"
-              label="Stars"
-              value={`${currentStats.totalStars} earned`}
-            />
-            <QuickStatCard
-              icon="🎯"
-              label="Level XP"
-              value={`${currentStats.xp} XP`}
-              sub={`of ${currentStats.nextLevelXP} XP`}
-              progressPercent={currentStats.levelProgressPercent}
-            />
-          </div>
-        </section>
-      )}
+            <p className="text-[12px] text-[var(--color-text-secondary)] leading-snug">
+              {dailyGoalPercent >= 100
+                ? '🎉 Excellent work! You completed your daily study goal.'
+                : 'Review cards consistently every day to maximize memory stability.'}
+            </p>
+          </section>
 
-      {/* ── C. Quick Actions Row ───────────────────────────────────────────── */}
-      <section aria-label="Quick actions">
-        <div className="flex flex-row gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-          <Link href="/decks/new" className="shrink-0">
-            <Button variant="primary" size="sm">
-              + Create New Deck
-            </Button>
-          </Link>
-          {drillDeck && (
-            <Link href={`/decks/${drillDeck.id}/review?mode=mastery`} className="shrink-0">
-              <Button variant="secondary" size="sm">
-                🎯 Drill Weak Cards
-              </Button>
-            </Link>
-          )}
-          <Link href="/profile" className="shrink-0">
-            <Button variant="ghost" size="sm">
-              👤 View Profile
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── D. Decks Section ───────────────────────────────────────────────── */}
-      <section id="decks-section" aria-labelledby="decks-heading">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-baseline gap-3">
-            <h2
-              id="decks-heading"
-              className="text-[22px] font-bold tracking-tight text-[var(--color-text)]"
-            >
-              My Study Decks
-            </h2>
-            <span className="text-[13px] text-[var(--color-text-secondary)]">
-              {displayedDecks.length} deck{displayedDecks.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {/* Active / Archived Tab Pills */}
-          <div className="flex items-center gap-1.5 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] w-fit">
-            <button
-              type="button"
-              onClick={() => setFilterTab('active')}
-              className={`px-3.5 py-1 text-[13px] font-semibold rounded-full transition-all cursor-pointer ${
-                filterTab === 'active'
-                  ? 'bg-[var(--color-accent)] text-white shadow-sm'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              Active ({activeDecks.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterTab('archived')}
-              className={`px-3.5 py-1 text-[13px] font-semibold rounded-full transition-all cursor-pointer ${
-                filterTab === 'archived'
-                  ? 'bg-[var(--color-accent)] text-white shadow-sm'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              Archived ({archivedDecks.length})
-            </button>
-          </div>
-        </div>
-
-        {displayedDecks.length === 0 ? (
-          filterTab === 'archived' ? (
-            <div className="text-center py-16 px-6 border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
-              <div className="text-[48px] mb-3 select-none">📦</div>
-              <h3 className="text-[18px] font-bold text-[var(--color-text)] mb-1">No archived decks</h3>
-              <p className="text-[14px] text-[var(--color-text-secondary)] max-w-sm mx-auto">
-                Decks you archive will appear here so you can revisit or restore them anytime.
-              </p>
-            </div>
-          ) : (
-            <EmptyState />
-          )
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {displayedDecks.map((deck) => {
-              const s = statsMap.get(deck.id) ?? {
-                deckId: deck.id,
-                totalCards: 0,
-                dueNow: 0,
-                masteredCount: 0,
-                accuracyLast7Days: 0,
-              };
-
-              const masteryPercent =
-                s.totalCards > 0
-                  ? Math.round((s.masteredCount / s.totalCards) * 100)
-                  : 0;
-
-              const stars = getStarCount(masteryPercent);
-
-              return (
-                <article
-                  key={deck.id}
-                  className="group flex flex-col justify-between p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:border-[var(--color-border-strong)] hover:-translate-y-0.5 transition-all duration-200"
+          {/* Student Study Rhythm Metrics */}
+          {mounted && currentStats && (
+            <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
+                  Study Rhythm
+                </h3>
+                <Link
+                  href="/profile"
+                  className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
                 >
-                  {/* Card Top */}
-                  <div className="space-y-3">
-                    {/* Badges and action icons row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="neutral" size="sm">
-                          {SOURCE_LABELS[deck.sourceType] ?? deck.sourceType}
-                        </Badge>
-                        {deck.isArchived && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                            Archived
-                          </span>
-                        )}
-                      </div>
+                  Profile →
+                </Link>
+              </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {s.dueNow > 0 ? (
-                          <Badge variant="accent" size="sm">
-                            {s.dueNow} due
-                          </Badge>
-                        ) : (
-                          <Badge variant="success" size="sm">
-                            All caught up
-                          </Badge>
-                        )}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Streak */}
+                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                  <span className="text-[18px]">🔥</span>
+                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
+                    {currentStats.streak}d
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)]">Day Streak</span>
+                </div>
 
-                        {/* Archive / Unarchive Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleToggleArchive(deck.id, Boolean(deck.isArchived));
-                          }}
-                          title={deck.isArchived ? 'Restore to active decks' : 'Archive deck'}
-                          aria-label={deck.isArchived ? 'Restore to active decks' : 'Archive deck'}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors cursor-pointer"
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect width="20" height="5" x="2" y="3" rx="1" />
-                            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
-                            <path d="m10 12 2 2 2-2" />
-                          </svg>
-                        </button>
+                {/* Level */}
+                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                  <span className="text-[18px]">⚡</span>
+                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
+                    Lv. {currentStats.level}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)] truncate">
+                    {currentStats.title}
+                  </span>
+                </div>
 
-                        {/* Delete Deck Button */}
-                        <button
-                          type="button"
-                          disabled={deletingId === deck.id}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDeleteDeck(deck.id, deck.title);
-                          }}
-                          title="Delete deck permanently"
-                          aria-label="Delete deck permanently"
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                {/* Stars */}
+                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                  <span className="text-[18px]">⭐</span>
+                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
+                    {currentStats.totalStars}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)]">Stars Earned</span>
+                </div>
 
-                    {/* Title */}
-                    <div>
-                      <Link href={`/decks/${deck.id}`}>
-                        <h3 className="text-[19px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors leading-snug">
-                          {deck.title}
-                        </h3>
-                      </Link>
-                      <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
-                        {s.totalCards} cards · {s.masteredCount} mastered
-                      </p>
-                    </div>
+                {/* Total Cards */}
+                <div className="p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex flex-col">
+                  <span className="text-[18px]">📚</span>
+                  <span className="text-[18px] font-bold text-[var(--color-text)] mt-1">
+                    {currentStats.totalCardsReviewed}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)]">Reviewed</span>
+                </div>
+              </div>
+            </section>
+          )}
 
-                    {/* Mastery Progress Bar */}
-                    <MasteryBar percent={masteryPercent} />
-
-                    {/* Stars */}
-                    <div className="flex items-center gap-1.5">
-                      <StarRating count={stars} />
-                      <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                        {masteryPercent >= 66
-                          ? 'Excellent mastery'
-                          : masteryPercent >= 33
-                          ? 'Making progress'
-                          : 'Just starting out'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center gap-2">
-                    <Link href={`/decks/${deck.id}/review?mode=mastery`} className="flex-1">
-                      <Button variant="primary" size="sm" className="w-full">
-                        Start Review
-                      </Button>
-                    </Link>
-                    <Link href={`/decks/${deck.id}/review?mode=cram`}>
-                      <Button variant="secondary" size="sm">
-                        Cram All
-                      </Button>
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+          {/* Spaced Repetition Science Insight */}
+          <section className="p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">⏱️</span>
+              <h3 className="text-[13px] font-bold text-[var(--color-text)]">
+                FSRS Spaced Repetition
+              </h3>
+            </div>
+            <p className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed">
+              Cards adapt in real-time based on memory stability and your rating feedback (Again, Hard, Good, Easy). Studying just before you forget builds the strongest neural traces.
+            </p>
+          </section>
+        </aside>
+      </div>
     </main>
   );
 }
