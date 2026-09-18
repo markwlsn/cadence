@@ -106,10 +106,27 @@ export function MobileTabBar() {
               <span className="text-[10px] font-semibold text-[var(--color-text)] tracking-tight">Create</span>
             </Link>
 
-            {/* 4. Profile / Account */}
+            {/* 4. Mistake Notebook */}
+            <Link
+              href="/notebook"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-[var(--radius-sm)] transition-all active:scale-95 ${
+                isTabActive('/notebook')
+                  ? 'text-[var(--color-text)] font-bold'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              }`}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={isTabActive('/notebook') ? '2.4' : '1.9'} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                <path d="M6 6h10" />
+                <path d="M6 10h10" />
+              </svg>
+              <span className="text-[10px] tracking-tight">Notebook</span>
+            </Link>
+
+            {/* 5. Profile / Account */}
             <Link
               href="/profile"
-              className={`flex flex-col items-center gap-1 py-1 px-3 rounded-[var(--radius-sm)] transition-all active:scale-95 ${
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-[var(--radius-sm)] transition-all active:scale-95 ${
                 isTabActive('/profile')
                   ? 'text-[var(--color-text)] font-bold'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'

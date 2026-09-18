@@ -51,6 +51,7 @@ export function Navbar() {
     ? [
         { label: 'Dashboard', href: '/' },
         { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+        { label: 'Mistake Notebook', href: '/notebook' },
       ]
     : [
         { label: 'Curriculum', href: '/#curriculum', isAnchor: true },

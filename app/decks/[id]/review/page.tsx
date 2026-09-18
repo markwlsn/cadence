@@ -17,8 +17,9 @@ import {
   saveAssessmentProgress,
   ASSESSMENT_CONFIGS,
 } from '@/lib/assessments';
-import { CardStack, ConfidenceRater, RatingButtons, ModeToggle } from '@/components/review';
+import { CardStack, ConfidenceRater, RatingButtons, ModeToggle, AIRationaleModal } from '@/components/review';
 import { Button, Badge, ThemeToggle } from '@/components/ui';
+import { recordMistake } from '@/lib/mistakes';
 
 export default function ReviewSessionPage() {
   const params = useParams();
@@ -56,6 +57,7 @@ export default function ReviewSessionPage() {
   const [confidenceBefore, setConfidenceBefore] = useState<1 | 2 | 3 | 4 | 5 | undefined>(undefined);
   const [selectedMcqOption, setSelectedMcqOption] = useState<number | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const [isRationaleOpen, setIsRationaleOpen] = useState(false);
 
   // Countdown timer effect
   useEffect(() => {
@@ -171,6 +173,7 @@ export default function ReviewSessionPage() {
       : missedCardIds;
     if (!isCorrect) {
       setMissedCardIds(updatedMissed);
+      recordMistake(currentCard, deckId, deckTitle);
     }
 
     // Submit review & record log entry
@@ -210,6 +213,7 @@ export default function ReviewSessionPage() {
       setIsFlipped(false);
       setConfidenceBefore(undefined);
       setSelectedMcqOption(null);
+      setIsRationaleOpen(false);
     }
   };
 
@@ -363,6 +367,7 @@ export default function ReviewSessionPage() {
                     setCurrentIndex(i);
                     setIsFlipped(false);
                     setSelectedMcqOption(null);
+                    setIsRationaleOpen(false);
                   }}
                   className={`w-6 h-6 rounded flex items-center justify-center shrink-0 font-medium transition-all ${
                     isCurrent
@@ -416,14 +421,36 @@ export default function ReviewSessionPage() {
             </div>
           ) : (
             /* Post-reveal: Rating Buttons (Again / Hard / Good / Easy) */
-            <div className="w-full animate-count-up">
-              <span className="block text-center text-[12px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider mb-2">
-                Rate difficulty (or swipe card)
-              </span>
+            <div className="w-full animate-count-up space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                  Rate difficulty (or swipe)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsRationaleOpen(true)}
+                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text)] hover:underline active:scale-95 transition-all"
+                >
+                  <span>💡 Explain Rationale (AI)</span>
+                </button>
+              </div>
               <RatingButtons onRate={handleRate} />
             </div>
           )}
         </div>
+
+        {cards[currentIndex] && (
+          <AIRationaleModal
+            card={cards[currentIndex]}
+            chosenAnswer={
+              selectedMcqOption !== null && cards[currentIndex].options
+                ? cards[currentIndex].options[selectedMcqOption]
+                : null
+            }
+            isOpen={isRationaleOpen}
+            onClose={() => setIsRationaleOpen(false)}
+          />
+        )}
       </main>
 
       {/* Footer info: Keyboard & Gesture hints */}

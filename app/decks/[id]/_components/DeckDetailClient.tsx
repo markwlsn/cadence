@@ -149,6 +149,19 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
             </div>
           </div>
         </div>
+
+        <div className="pt-3 border-t border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]">
+          <span className="text-[var(--color-text-secondary)]">
+            Need an official evaluation and study prescription?
+          </span>
+          <Link
+            href={`/decks/${deck.id}/diagnostic`}
+            className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
+          >
+            <span>View Full Diagnostic Report (Print / PDF)</span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
       </section>
 
       {/* ── 3. Apple Segmented Control Tab Switcher ────────────────────── */}

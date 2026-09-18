@@ -180,21 +180,61 @@ export default function NewDeckPage() {
 
             {/* Input Method Content */}
             {sourceType === 'text' ? (
-              <div>
-                <label
-                  htmlFor="pasted-text"
-                  className="block text-[13px] font-semibold text-[var(--color-text)] mb-2 uppercase tracking-wide"
-                >
-                  Raw Notes or Lecture Summary
-                </label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="pasted-text"
+                    className="block text-[13px] font-semibold text-[var(--color-text)] uppercase tracking-wide"
+                  >
+                    Raw Notes or Lecture Summary
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[var(--color-text-tertiary)]">
+                      Templates:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPastedText(
+                          `Topic 1: Core Definitions & Foundations\n- Key Term 1: Definition and primary mechanism\n- Key Term 2: Core distinction from related processes\n\nTopic 2: Step-by-Step Mechanisms\n- Stage 1: Activation and rate-limiting factors\n- Stage 2: Synthesis and enzymatic regulation\n\nTopic 3: Applied Concepts & Clinical/Scenario Cases\n- Differential distinction between Condition A and Condition B\n- Common diagnostic pitfalls and distractor traps`
+                        )
+                      }
+                      className="text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] underline"
+                    >
+                      Lecture Outline
+                    </button>
+                    <span className="text-[var(--color-border)]">•</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPastedText(
+                          `Unit 1: Foundational Principles\n- Principle 1: Essential governing laws and terminology\n- Principle 2: Fundamental relationships and causes\n\nUnit 2: Advanced System Architecture\n- Core operational dynamics and cross-unit interactions\n- Problem cases, exceptions, and typical examination edge cases`
+                        )
+                      }
+                      className="text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] underline"
+                    >
+                      Syllabus Unit
+                    </button>
+                  </div>
+                </div>
+
                 <textarea
                   id="pasted-text"
-                  rows={7}
+                  rows={8}
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
-                  placeholder="Paste lecture notes, textbook summaries, definitions, or bullet points here..."
+                  placeholder="Paste lecture notes, textbook summaries, definitions, or slide bullet points here..."
                   className="w-full p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[15px] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:border-[var(--color-text)] focus:bg-[var(--color-surface-raised)] transition-colors resize-y leading-relaxed font-sans"
                 />
+
+                <div className="flex items-center justify-between text-[12px] text-[var(--color-text-secondary)] px-1">
+                  <span>
+                    {pastedText.trim() ? pastedText.trim().split(/\s+/).length : 0} words
+                  </span>
+                  <span>
+                    Aim for ≥ 200 words for balanced card variety across quizzes and mock exam
+                  </span>
+                </div>
               </div>
             ) : (
               <div>
@@ -262,8 +302,23 @@ export default function NewDeckPage() {
               </div>
             )}
 
+            {/* Curriculum Roadmap Architecture Preview */}
+            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                  Automatic Curriculum Synthesis
+                </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)]">
+                  Linear Roadmap
+                </span>
+              </div>
+              <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+                Cadence will automatically partition your generated cards into 3 Foundational Quizzes, 2 Section Synthesis Long Quizzes, and a 35-item Comprehensive Mock Exam.
+              </p>
+            </div>
+
             {/* Submit Action */}
-            <div className="pt-4 flex flex-col sm:flex-row items-center gap-3">
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               <Link href="/" className="w-full sm:w-auto">
                 <Button
                   type="button"
