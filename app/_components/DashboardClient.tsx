@@ -465,12 +465,21 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
               <h3 className="text-[14px] font-bold text-[var(--color-text)] uppercase tracking-wider">
                 Study Progress
               </h3>
-              <Link
-                href="/profile"
-                className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
-              >
-                Account →
-              </Link>
+              {mounted && user?.isGuest ? (
+                <Link
+                  href="/register"
+                  className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
+                >
+                  Register →
+                </Link>
+              ) : (
+                <Link
+                  href="/profile"
+                  className="text-[12px] font-semibold text-[var(--color-text)] hover:underline"
+                >
+                  Account →
+                </Link>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

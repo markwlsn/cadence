@@ -13,12 +13,6 @@ const DESKTOP_NAV_LINKS = [
   { label: 'My Decks', href: '/#decks-section', isAnchor: true },
 ];
 
-const MOBILE_NAV_LINKS = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'My Decks', href: '/#decks-section', isAnchor: true },
-  { label: '+ Create New Deck', href: '/decks/new' },
-  { label: 'Profile & Settings', href: '/profile' },
-];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -59,12 +53,19 @@ export function Navbar() {
     return pathname.startsWith(href);
   };
 
+  const mobileNavLinks = [
+    { label: 'Dashboard', href: '/' },
+    { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+    { label: '+ Create New Deck', href: '/decks/new' },
+    ...(!user?.isGuest ? [{ label: 'Profile & Settings', href: '/profile' }] : []),
+  ];
+
   // Initials fallback for avatar
   const avatarDisplay = user?.avatar && user.avatar.length <= 2
     ? user.avatar
     : user?.name
       ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-      : 'GS';
+      : 'U';
 
   const isEmoji = user?.avatar && /\p{Emoji}/u.test(user.avatar);
 
@@ -121,36 +122,45 @@ export function Navbar() {
             <span>New Deck</span>
           </Link>
 
-          {/* Guest Sign In Link */}
-          {mounted && user?.isGuest && (
-            <Link
-              href="/login"
-              className="hidden md:inline-block text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors px-2 py-1"
-            >
-              Sign In
-            </Link>
-          )}
-
           {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* Avatar / Profile */}
-          <Link
-            href="/profile"
-            aria-label="Go to profile"
-            title={user?.name || 'Profile'}
-            className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full flex items-center justify-center overflow-hidden bg-[var(--color-surface)] border transition-all shrink-0 font-semibold text-[var(--color-text-secondary)] text-[15px] ${
-              pathname === '/profile'
-                ? 'border-[var(--color-text)] ring-2 ring-[var(--color-focus-ring)]'
-                : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
-            }`}
-          >
-            {mounted && isEmoji ? (
-              <span className="text-[20px] leading-none">{user?.avatar}</span>
-            ) : (
-              <span className="text-[13px] font-bold">{mounted ? avatarDisplay : '—'}</span>
-            )}
-          </Link>
+          {/* Auth State: Sign In / Register for Guests, Profile Avatar for Registered Students */}
+          {mounted && user?.isGuest ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2.5 py-1.5 rounded-[var(--radius-sm)] transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="text-[13px] font-semibold text-[var(--color-btn-primary-text)] bg-[var(--color-btn-primary-bg)] hover:bg-[var(--color-btn-primary-hover)] px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors shadow-sm"
+              >
+                Register
+              </Link>
+            </div>
+          ) : mounted && user ? (
+            <Link
+              href="/profile"
+              aria-label="Go to profile"
+              title={user.name || 'Profile'}
+              className={`w-11 h-11 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full flex items-center justify-center overflow-hidden bg-[var(--color-surface)] border transition-all shrink-0 font-semibold text-[var(--color-text-secondary)] text-[15px] ${
+                pathname === '/profile'
+                  ? 'border-[var(--color-text)] ring-2 ring-[var(--color-focus-ring)]'
+                  : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+              }`}
+            >
+              {isEmoji ? (
+                <span className="text-[20px] leading-none">{user.avatar}</span>
+              ) : (
+                <span className="text-[13px] font-bold">{avatarDisplay}</span>
+              )}
+            </Link>
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[var(--color-surface-overlay)] animate-pulse" />
+          )}
 
           {/* Mobile Hamburger */}
           <button
@@ -179,7 +189,7 @@ export function Navbar() {
           className="md:hidden border-t border-[var(--color-border)] bg-[var(--color-bg)]/95 backdrop-blur-md px-4 py-3 flex flex-col gap-1"
           aria-label="Mobile navigation"
         >
-          {MOBILE_NAV_LINKS.map((link) => (
+          {mobileNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

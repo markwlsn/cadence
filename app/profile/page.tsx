@@ -28,12 +28,16 @@ export default function ProfilePage() {
   useEffect(() => {
     setMounted(true);
     const currentUser = getCurrentUser();
+    if (currentUser.isGuest) {
+      router.replace('/login');
+      return;
+    }
     setUser(currentUser);
     setEditName(currentUser.name);
     setEditPhone(currentUser.phone || '');
     setEditAge(currentUser.age !== undefined ? String(currentUser.age) : '');
     setSelectedAvatar(currentUser.avatar);
-  }, []);
+  }, [router]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -72,12 +76,12 @@ export default function ProfilePage() {
     }
   };
 
-  if (!mounted || !user) {
+  if (!mounted || !user || user.isGuest) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 rounded-full border-2 border-[var(--color-text)] border-t-transparent animate-spin" />
-          <p className="text-[15px] text-[var(--color-text-secondary)]">Loading account settings…</p>
+          <p className="text-[15px] text-[var(--color-text-secondary)]">Redirecting to sign in…</p>
         </div>
       </div>
     );
@@ -95,28 +99,6 @@ export default function ProfilePage() {
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 space-y-8">
-        {/* Guest banner */}
-        {user.isGuest && (
-          <div
-            role="region"
-            aria-label="Guest account notice"
-            className="p-4 rounded-[var(--radius-md)] flex items-start gap-3 bg-amber-500/10 border border-amber-500/25"
-          >
-            <span className="text-[20px] flex-shrink-0 leading-none">⚠️</span>
-            <div>
-              <p className="text-[14px] font-medium text-[var(--color-text)] leading-snug">
-                You are currently studying as a guest.
-              </p>
-              <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
-                Create an account to preserve your study decks and test scores permanently across devices.{' '}
-                <Link href="/register" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
-                  Register now →
-                </Link>
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Hero / Avatar Section */}
         <section className="flex flex-col items-center gap-4 pt-2">
           <div className="w-20 h-20 rounded-[var(--radius-lg)] flex items-center justify-center text-[48px] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-md)]">
@@ -128,7 +110,7 @@ export default function ProfilePage() {
               {user.name}
             </h2>
             <p className="text-[14px] text-[var(--color-text-secondary)] mt-0.5">
-              {user.email || 'Guest Student'}
+              {user.email || 'Registered Student'}
             </p>
           </div>
         </section>
