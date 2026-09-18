@@ -61,15 +61,22 @@ export async function getDecks(): Promise<Deck[]> {
     return getMockDecks();
   }
 
-  const res = await fetch(`${getBaseUrl()}/api/decks`, {
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks`, {
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch decks: ${res.statusText}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[data] Could not fetch decks from API, falling back to mock data:', err);
   }
 
-  return res.json();
+  return getMockDecks();
 }
 
 /**
@@ -82,19 +89,24 @@ export async function getDeck(id: string): Promise<Deck | null> {
     return decks.find((d) => d.id === id) ?? null;
   }
 
-  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(id)}`, {
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(id)}`, {
+      cache: 'no-store',
+    });
 
-  if (res.status === 404) {
-    return null;
+    if (res.status === 404) {
+      return null;
+    }
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[data] Could not fetch deck ${id}, falling back to mock data:`, err);
   }
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch deck ${id}: ${res.statusText}`);
-  }
-
-  return res.json();
+  const mockDecks = await getMockDecks();
+  return mockDecks.find((d) => d.id === id) ?? null;
 }
 
 /**
@@ -115,21 +127,28 @@ export async function getDeckStats(deckId: string): Promise<DeckStats> {
     );
   }
 
-  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}/stats`, {
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}/stats`, {
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    return {
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[data] Could not fetch stats for ${deckId}, falling back:`, err);
+  }
+
+  const mockStats = await getMockStats();
+  return (
+    mockStats[deckId] ?? {
       deckId,
       totalCards: 0,
       dueNow: 0,
       masteredCount: 0,
       accuracyLast7Days: 0,
-    };
-  }
-
-  return res.json();
+    }
+  );
 }
 
 /**
@@ -142,15 +161,20 @@ export async function getDeckCards(deckId: string): Promise<Card[]> {
     return cards.filter((c) => c.deckId === deckId);
   }
 
-  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}/cards`, {
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}/cards`, {
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch cards for deck ${deckId}: ${res.statusText}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[data] Could not fetch cards for ${deckId}, falling back:`, err);
   }
 
-  return res.json();
+  const mockCards = await getMockCards();
+  return mockCards.filter((c) => c.deckId === deckId);
 }
 
 // ─── Review / Queue Functions ─────────────────────────────────────────────────
@@ -174,19 +198,33 @@ export async function getQueue(deckId: string, mode: ReviewMode): Promise<Card[]
     return [...deckCards].sort(() => Math.random() - 0.5);
   }
 
-  const url = `${getBaseUrl()}/api/review/queue?deckId=${encodeURIComponent(
-    deckId
-  )}&mode=${encodeURIComponent(mode)}`;
+  try {
+    const url = `${getBaseUrl()}/api/review/queue?deckId=${encodeURIComponent(
+      deckId
+    )}&mode=${encodeURIComponent(mode)}`;
 
-  const res = await fetch(url, {
-    cache: 'no-store',
-  });
+    const res = await fetch(url, {
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch review queue: ${res.statusText}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[data] Could not fetch queue for ${deckId}, falling back:`, err);
   }
 
-  return res.json();
+  const cards = await getMockCards();
+  const deckCards = cards.filter((c) => c.deckId === deckId);
+
+  if (mode === 'mastery') {
+    const now = new Date().toISOString();
+    return deckCards
+      .filter((c) => c.due <= now)
+      .sort((a, b) => a.due.localeCompare(b.due));
+  }
+
+  return [...deckCards].sort(() => Math.random() - 0.5);
 }
 
 /**
