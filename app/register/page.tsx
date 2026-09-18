@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { registerUser, continueAsGuest, AVATAR_OPTIONS } from '@/lib/auth';
@@ -33,6 +33,14 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [redirectParam, setRedirectParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('redirect');
+      if (p) setRedirectParam(p);
+    }
+  }, []);
 
   const strength = getPasswordStrength(password);
   const isMatch = confirmPassword.length > 0 && password === confirmPassword;
@@ -77,7 +85,7 @@ export default function RegisterPage() {
         age.trim() ? Number(age) : undefined
       );
       if (result.success) {
-        router.push('/');
+        router.push(redirectParam || '/');
       } else {
         setError(result.error || 'Registration failed. Please try again.');
       }
@@ -92,7 +100,7 @@ export default function RegisterPage() {
     setIsGuestLoading(true);
     try {
       continueAsGuest();
-      router.push('/');
+      router.push(redirectParam || '/');
     } catch {
       setError('Failed to start guest session.');
       setIsGuestLoading(false);
@@ -444,7 +452,10 @@ export default function RegisterPage() {
 
           <p className="text-center text-[14px] text-[var(--color-text-secondary)] mt-8">
             Already have an account?{' '}
-            <Link href="/login" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
+            <Link
+              href={redirectParam ? `/login?redirect=${encodeURIComponent(redirectParam)}` : '/login'}
+              className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80"
+            >
               Sign In
             </Link>
           </p>

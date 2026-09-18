@@ -1,6 +1,6 @@
 import { getDecks, getDeckStats } from '@/lib/data';
 import { OnboardingCheck, Navbar } from '@/components/ui';
-import DashboardClient from './_components/DashboardClient';
+import HomeContainer from './_components/HomeContainer';
 
 export const revalidate = 0; // Always fresh on every navigation
 
@@ -13,7 +13,7 @@ export default async function HomePage() {
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
       <OnboardingCheck />
       <Navbar />
-      <DashboardClient decks={decks} statsEntries={statsEntries} />
+      <HomeContainer decks={decks} statsEntries={statsEntries} />
     </div>
   );
 }

@@ -8,10 +8,6 @@ import { CadenceLogo } from './CadenceLogo';
 import { getCurrentUser } from '@/lib/auth';
 import type { User } from '@/lib/auth';
 
-const DESKTOP_NAV_LINKS = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'My Decks', href: '/#decks-section', isAnchor: true },
-];
 
 
 export function Navbar() {
@@ -53,12 +49,30 @@ export function Navbar() {
     return pathname.startsWith(href);
   };
 
-  const mobileNavLinks = [
-    { label: 'Dashboard', href: '/' },
-    { label: 'My Decks', href: '/#decks-section', isAnchor: true },
-    { label: '+ Create New Deck', href: '/decks/new' },
-    ...(!user?.isGuest ? [{ label: 'Profile & Settings', href: '/profile' }] : []),
-  ];
+  const desktopNavLinks = mounted && user && !user.isGuest
+    ? [
+        { label: 'Dashboard', href: '/' },
+        { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+      ]
+    : [
+        { label: 'Curriculum', href: '/#curriculum', isAnchor: true },
+        { label: 'Methodology', href: '/#methodology', isAnchor: true },
+        { label: 'Spaced Repetition', href: '/#science', isAnchor: true },
+      ];
+
+  const mobileNavLinks = mounted && user && !user.isGuest
+    ? [
+        { label: 'Dashboard', href: '/' },
+        { label: 'My Decks', href: '/#decks-section', isAnchor: true },
+        { label: '+ Create New Deck', href: '/decks/new' },
+        { label: 'Profile & Settings', href: '/profile' },
+      ]
+    : [
+        { label: 'Home', href: '/' },
+        { label: 'Curriculum', href: '/#curriculum', isAnchor: true },
+        { label: 'Methodology', href: '/#methodology', isAnchor: true },
+        { label: 'Spaced Repetition', href: '/#science', isAnchor: true },
+      ];
 
   // Initials fallback for avatar
   const avatarDisplay = user?.avatar && user.avatar.length <= 2
@@ -91,7 +105,7 @@ export function Navbar() {
           className="hidden md:flex items-center gap-1"
           aria-label="Primary navigation"
         >
-          {DESKTOP_NAV_LINKS.map((link) => (
+          {desktopNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -110,17 +124,19 @@ export function Navbar() {
 
         {/* ── Right: Clean Consolidated Actions ── */}
         <div className="flex items-center gap-3 shrink-0">
-          {/* Quick Action: New Deck */}
-          <Link
-            href="/decks/new"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] text-[13px] font-semibold hover:bg-[var(--color-btn-primary-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
-            title="Create a new flashcard deck"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>New Deck</span>
-          </Link>
+          {/* Quick Action: New Deck (STRICTLY for authenticated registered users) */}
+          {mounted && user && !user.isGuest && (
+            <Link
+              href="/decks/new"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] text-[13px] font-semibold hover:bg-[var(--color-btn-primary-hover)] transition-colors active:scale-95 shadow-[var(--shadow-sm)]"
+              title="Create a new flashcard deck"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>New Deck</span>
+            </Link>
+          )}
 
           {/* Theme Toggle */}
           <ThemeToggle />

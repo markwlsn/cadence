@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, SegmentedControl, Navbar, BackButton } from '@/components/ui';
 import { createDeck } from '@/lib/data';
+import { getCurrentUser, type User } from '@/lib/auth';
 
 type SourceType = 'pdf' | 'text' | 'image';
 
 export default function NewDeckPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [sourceType, setSourceType] = useState<SourceType>('pdf');
   const [title, setTitle] = useState('');
   const [pastedText, setPastedText] = useState('');
@@ -18,6 +21,16 @@ export default function NewDeckPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const currentUser = getCurrentUser();
+    if (currentUser.isGuest) {
+      router.replace('/login?redirect=/decks/new');
+      return;
+    }
+    setUser(currentUser);
+  }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -63,6 +76,22 @@ export default function NewDeckPage() {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to create deck or generate flashcards.');
     }
   };
+
+  if (!mounted || !user || user.isGuest) {
+    return (
+      <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 rounded-full border-2 border-[var(--color-text)] border-t-transparent animate-spin" />
+            <p className="text-[15px] text-[var(--color-text-secondary)]">
+              Sign in required to create study decks…
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh flex flex-col">

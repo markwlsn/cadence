@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loginUser, continueAsGuest } from '@/lib/auth';
@@ -14,6 +14,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
+  const [redirectParam, setRedirectParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('redirect');
+      if (p) setRedirectParam(p);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +30,7 @@ export default function LoginPage() {
     try {
       const result = await loginUser(email.trim(), password);
       if (result.success) {
-        router.push('/');
+        router.push(redirectParam || '/');
       } else {
         setError(result.error || 'Sign in failed. Please try again.');
       }
@@ -37,7 +45,7 @@ export default function LoginPage() {
     setIsGuestLoading(true);
     try {
       continueAsGuest();
-      router.push('/');
+      router.push(redirectParam || '/');
     } catch {
       setError('Failed to start guest session.');
       setIsGuestLoading(false);
@@ -243,7 +251,10 @@ export default function LoginPage() {
 
           <p className="text-center text-[14px] text-[var(--color-text-secondary)] mt-8">
             {'Don\'t have an account? '}
-            <Link href="/register" className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80">
+            <Link
+              href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : '/register'}
+              className="text-[var(--color-text)] font-semibold underline underline-offset-4 hover:opacity-80"
+            >
               Register
             </Link>
           </p>
