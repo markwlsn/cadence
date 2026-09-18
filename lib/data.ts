@@ -438,3 +438,40 @@ export async function createDeck(params: {
 
   return { deck, cards };
 }
+
+/**
+ * Permanently delete a deck and all associated cards and review logs.
+ * Corresponds to DELETE /api/decks/:id
+ */
+export async function deleteDeck(deckId: string): Promise<boolean> {
+  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
+    method: 'DELETE',
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to delete deck ${deckId}`);
+  }
+
+  return true;
+}
+
+/**
+ * Archive or unarchive a deck.
+ * Corresponds to PATCH /api/decks/:id
+ */
+export async function archiveDeck(deckId: string, isArchived: boolean): Promise<Deck> {
+  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isArchived }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to update archive status for deck ${deckId}`);
+  }
+
+  return res.json();
+}
+

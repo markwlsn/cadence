@@ -21,6 +21,7 @@ export interface Deck {
   id: string;
   title: string;
   sourceType: 'pdf' | 'text' | 'image';
+  isArchived?: boolean;
   createdAt: string;
 }
 

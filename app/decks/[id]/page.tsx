@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getDeck, getDeckStats, getDeckCards } from '@/lib/data';
 import { Badge, ProgressRing, Button, Navbar } from '@/components/ui';
+import DeckManageActions from './_components/DeckManageActions';
 
 interface DeckDashboardProps {
   params: Promise<{ id: string }>;
@@ -62,17 +63,24 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link href={`/decks/${deck.id}/review?mode=cram`}>
-              <Button variant="secondary" size="md">
-                Cram All ({stats.totalCards})
-              </Button>
-            </Link>
-            <Link href={`/decks/${deck.id}/review?mode=mastery`}>
-              <Button variant="primary" size="md">
-                Start Review ({stats.dueNow > 0 ? stats.dueNow : stats.totalCards})
-              </Button>
-            </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <DeckManageActions
+              deckId={deck.id}
+              deckTitle={deck.title}
+              isArchived={Boolean(deck.isArchived)}
+            />
+            <div className="flex items-center gap-2">
+              <Link href={`/decks/${deck.id}/review?mode=cram`}>
+                <Button variant="secondary" size="md">
+                  Cram All ({stats.totalCards})
+                </Button>
+              </Link>
+              <Link href={`/decks/${deck.id}/review?mode=mastery`}>
+                <Button variant="primary" size="md">
+                  Start Review ({stats.dueNow > 0 ? stats.dueNow : stats.totalCards})
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
 

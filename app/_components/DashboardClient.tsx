@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getUserStats } from '@/lib/gamification';
 import { getCurrentUser } from '@/lib/auth';
+import { deleteDeck, archiveDeck } from '@/lib/data';
 import { Badge, Button, ProgressRing } from '@/components/ui';
 import type { Deck, DeckStats } from '@/types';
 import type { UserStats } from '@/lib/gamification';
@@ -160,6 +161,9 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const [mounted, setMounted] = useState(false);
   const [quote, setQuote] = useState(STUDY_QUOTES[0]);
   const [greeting, setGreeting] = useState('Welcome');
+  const [deckList, setDeckList] = useState<Deck[]>(decks);
+  const [filterTab, setFilterTab] = useState<'active' | 'archived'>('active');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Build statsMap from serialised entries
   const statsMap = new Map<string, DeckStats>(statsEntries);
@@ -182,8 +186,42 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
     };
   }, []);
 
+  const handleDeleteDeck = async (deckId: string, deckTitle: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to permanently delete "${deckTitle}" and all its flashcards? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeletingId(deckId);
+    try {
+      await deleteDeck(deckId);
+      setDeckList((prev) => prev.filter((d) => d.id !== deckId));
+    } catch {
+      alert('Failed to delete deck. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleToggleArchive = async (deckId: string, currentArchived: boolean) => {
+    try {
+      const updated = await archiveDeck(deckId, !currentArchived);
+      setDeckList((prev) =>
+        prev.map((d) => (d.id === deckId ? { ...d, isArchived: updated.isArchived } : d))
+      );
+    } catch {
+      alert('Failed to update archive status.');
+    }
+  };
+
+  const activeDecks = deckList.filter((d) => !d.isArchived);
+  const archivedDecks = deckList.filter((d) => Boolean(d.isArchived));
+  const displayedDecks = filterTab === 'archived' ? archivedDecks : activeDecks;
+
   // Find the deck with the most due cards for "Drill Weak Cards"
-  const drillDeck = decks.reduce<Deck | null>((best, deck) => {
+  const drillDeck = activeDecks.reduce<Deck | null>((best, deck) => {
     const s = statsMap.get(deck.id);
     const bestS = best ? statsMap.get(best.id) : null;
     if (!s) return best;
@@ -296,25 +334,61 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
 
       {/* ── D. Decks Section ───────────────────────────────────────────────── */}
       <section id="decks-section" aria-labelledby="decks-heading">
-        <div className="flex items-baseline justify-between mb-5">
-          <h2
-            id="decks-heading"
-            className="text-[22px] font-bold tracking-tight text-[var(--color-text)]"
-          >
-            My Study Decks
-          </h2>
-          {decks.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-baseline gap-3">
+            <h2
+              id="decks-heading"
+              className="text-[22px] font-bold tracking-tight text-[var(--color-text)]"
+            >
+              My Study Decks
+            </h2>
             <span className="text-[13px] text-[var(--color-text-secondary)]">
-              {decks.length} deck{decks.length !== 1 ? 's' : ''}
+              {displayedDecks.length} deck{displayedDecks.length !== 1 ? 's' : ''}
             </span>
-          )}
+          </div>
+
+          {/* Active / Archived Tab Pills */}
+          <div className="flex items-center gap-1.5 p-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] w-fit">
+            <button
+              type="button"
+              onClick={() => setFilterTab('active')}
+              className={`px-3.5 py-1 text-[13px] font-semibold rounded-full transition-all cursor-pointer ${
+                filterTab === 'active'
+                  ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              }`}
+            >
+              Active ({activeDecks.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab('archived')}
+              className={`px-3.5 py-1 text-[13px] font-semibold rounded-full transition-all cursor-pointer ${
+                filterTab === 'archived'
+                  ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+              }`}
+            >
+              Archived ({archivedDecks.length})
+            </button>
+          </div>
         </div>
 
-        {decks.length === 0 ? (
-          <EmptyState />
+        {displayedDecks.length === 0 ? (
+          filterTab === 'archived' ? (
+            <div className="text-center py-16 px-6 border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+              <div className="text-[48px] mb-3 select-none">📦</div>
+              <h3 className="text-[18px] font-bold text-[var(--color-text)] mb-1">No archived decks</h3>
+              <p className="text-[14px] text-[var(--color-text-secondary)] max-w-sm mx-auto">
+                Decks you archive will appear here so you can revisit or restore them anytime.
+              </p>
+            </div>
+          ) : (
+            <EmptyState />
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {decks.map((deck) => {
+            {displayedDecks.map((deck) => {
               const s = statsMap.get(deck.id) ?? {
                 deckId: deck.id,
                 totalCards: 0,
@@ -337,27 +411,78 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
                 >
                   {/* Card Top */}
                   <div className="space-y-3">
-                    {/* Badges row */}
+                    {/* Badges and action icons row */}
                     <div className="flex items-center justify-between">
-                      <Badge variant="neutral" size="sm">
-                        {SOURCE_LABELS[deck.sourceType] ?? deck.sourceType}
-                      </Badge>
-                      {s.dueNow > 0 ? (
-                        <Badge variant="accent" size="sm">
-                          {s.dueNow} due
+                      <div className="flex items-center gap-2">
+                        <Badge variant="neutral" size="sm">
+                          {SOURCE_LABELS[deck.sourceType] ?? deck.sourceType}
                         </Badge>
-                      ) : (
-                        <Badge variant="success" size="sm">
-                          All caught up
-                        </Badge>
-                      )}
+                        {deck.isArchived && (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                            Archived
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {s.dueNow > 0 ? (
+                          <Badge variant="accent" size="sm">
+                            {s.dueNow} due
+                          </Badge>
+                        ) : (
+                          <Badge variant="success" size="sm">
+                            All caught up
+                          </Badge>
+                        )}
+
+                        {/* Archive / Unarchive Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleArchive(deck.id, Boolean(deck.isArchived));
+                          }}
+                          title={deck.isArchived ? 'Restore to active decks' : 'Archive deck'}
+                          aria-label={deck.isArchived ? 'Restore to active decks' : 'Archive deck'}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)] transition-colors cursor-pointer"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="20" height="5" x="2" y="3" rx="1" />
+                            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+                            <path d="m10 12 2 2 2-2" />
+                          </svg>
+                        </button>
+
+                        {/* Delete Deck Button */}
+                        <button
+                          type="button"
+                          disabled={deletingId === deck.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteDeck(deck.id, deck.title);
+                          }}
+                          title="Delete deck permanently"
+                          aria-label="Delete deck permanently"
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Title */}
                     <div>
-                      <h3 className="text-[19px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors leading-snug">
-                        {deck.title}
-                      </h3>
+                      <Link href={`/decks/${deck.id}`}>
+                        <h3 className="text-[19px] font-bold text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors leading-snug">
+                          {deck.title}
+                        </h3>
+                      </Link>
                       <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5">
                         {s.totalCards} cards · {s.masteredCount} mastered
                       </p>

@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import type { Deck } from '@/types';
 
-function mapDeck(d: { id: string; title: string; sourceType: string; createdAt: Date }): Deck {
+function mapDeck(d: { id: string; title: string; sourceType: string; isArchived?: boolean; createdAt: Date }): Deck {
   return {
     id: d.id,
     title: d.title,
     sourceType: d.sourceType as Deck['sourceType'],
+    isArchived: d.isArchived ?? false,
     createdAt: d.createdAt.toISOString(),
   };
 }
