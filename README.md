@@ -1,4 +1,4 @@
-# 🎓 Cadence — AI-Powered Spaced Repetition & Study Companion
+# 🎓 Cadence — Apple-Inspired Academic Exam Reviewer & Spaced Repetition Platform
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.3.5-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)](https://react.dev/)
@@ -7,51 +7,58 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-**Cadence** is a modern, Apple-inspired flashcard and spaced repetition system engineered specifically for active student learning. 
+**Cadence** is an authentic, Apple-grade e-learning reviewer built specifically for serious students preparing for university exams and board qualifications.
 
-Unlike traditional flashcard apps where users passively flip cards, Cadence requires **active recall** through typed fill-in-the-blanks, syntax-highlighted code editors, interactive multiple-choice drills, and intelligent typo tolerance. Scheduled by the **FSRS (Free Spaced Repetition Scheduler)** algorithm and powered by **Google Gemini AI**, Cadence ensures high retention with minimal study fatigue.
+Unlike standard flashcard apps cluttered with gamification noise, Cadence uses a **structured linear assessment curriculum**, **AI-driven Socratic mistake analysis**, **clinical-grade exam readiness diagnostics**, and the **Free Spaced Repetition Scheduler (FSRS v5)** to ensure high retention with zero distraction.
 
 ---
 
-## ✨ Key Features
+## ✨ Academic Reviewer Architecture
 
-### 🧠 Multimodal AI Ingestion
-- Upload lecture slides (**PDF**), paste raw study notes (**Text**), or submit diagrams (**Images**).
-- Gemini AI parses materials into logical conceptual chunks (150–400 words) and auto-generates balanced decks of clozes, code blanks, MCQs, and conceptual cards in seconds.
+### 🏛️ Structured Linear Assessment Curriculum
+Replaces random card flipping with an organized sequence adapted to each deck:
+1. **Foundational Quizzes (Quizzes 1–3)**: Core terminology, basic retrieval, and fundamental definitions.
+2. **Section Synthesis (Long Quizzes 1–2)**: Integration across topics, procedural mechanisms, and complex recall.
+3. **Comprehensive Mock Exam (35 items)**: Full examination simulation with an Apple-style **35-minute countdown timer**, **`🚩 Flag for Review`** toggles, and an interactive **Question Jump Navigator**.
 
-### ✍️ Active Recall Interactivity
-- **Fill in the Blanks (Cloze)**: Type missing terms directly inside sentences or definitions with one-click hints (first character & length reveal).
-- **Code Blank Editor**: Dark, VS Code-styled code editor blocks with syntax formatting for computer science and programming revision.
-- **Multiple Choice Questions (MCQ)**: Instant visual feedback with clickable cards and ergonomic keyboard shortcuts (`1–4` and `A–D`).
-- **Basic Active Recall**: Type your initial recall answer into an answer box before flipping to compare side-by-side with the model explanation.
+### 📄 Printable Academic Diagnostic Report
+- **Official Evaluation Document (`/decks/:id/diagnostic`)**: Replaces artificial badges with a scientific performance diagnostic.
+- **Pass Likelihood Forecast**: Statistical pass probability (e.g. *88% – 96% High Likelihood of Passing*).
+- **3-Pillar Academic Weighting**:
+  - **40% Curriculum Progression**: Linear milestone adherence.
+  - **35% Test Performance**: Average score across completed assessments.
+  - **25% Retention Stability**: FSRS memory stability and mastery counts.
+- **Domain Breakdown**: Compares foundational terminology recall against analytical MCQ scenario discrimination.
+- **Prescribed Study Action Plan**: Step-by-step checklist of what to review before test day.
+- **1-Click Print / PDF Export (`🖨️`)**: Formatted specifically for single-page A4 / Letter export.
 
-### 🎯 Intelligent Fuzzy Grading
-- Built-in tiered Levenshtein distance algorithm:
-  - **Short answers (≤3 chars)**: Strict matching prevents false positives.
-  - **Medium answers (4–6 chars)**: 1 typo permitted (e.g., `promse` matches `promise`).
-  - **Long answers (≥7 chars)**: Up to 2 typos or ≥82% similarity tolerated.
-- Strips accents, punctuation, quotes, and whitespace variations.
+### 💡 AI Socratic Rationale Tutor ("Why is this wrong?")
+- When a student answers incorrectly, Cadence analyzes the subtle conceptual gap:
+  1. **The Cognitive Trap**: Why the chosen option or distractor was tempting.
+  2. **The Causal Mechanism**: Why the correct answer is unambiguously correct.
+  3. **Anchor Takeaway**: A single, punchy takeaway sentence to lock into memory.
+- Available directly on answer reveal during reviews and inside the Mistake Notebook.
+- Powered by Claude / Gemini with an intelligent offline cognitive heuristic fallback.
 
-### 📈 Free Spaced Repetition Scheduler (FSRS v5)
-- State-of-the-art memory algorithm tracking card stability ($S$), difficulty ($D$), and optimal interval review dates.
-- Two distinct study modes:
-  - **Mastery Mode**: Review cards scheduled due today according to spaced repetition.
-  - **Cram Mode**: High-yield triage sorting cards by highest difficulty and lowest stability for exam prep.
+### 📓 Cross-Deck Mistake Notebook & Error Taxonomy (`/notebook`)
+- Central error repository that automatically captures missed questions across all decks.
+- Classify mistakes by cognitive failure mode:
+  - ⚡ **Misread Question / Rushed**
+  - 🧠 **Concept Distinction / Distractor Trap**
+  - 📖 **Knowledge Gap / Unfamiliar Term**
+  - 🔢 **Multi-Step Execution / Calculation Error**
+- **1-Click Remediation**: Launch a custom review drill targeting only filtered mistakes.
 
-### ⚡ Gamification & Motivation
-- **XP Progression & 6 Scholar Tiers**: From *Novice Scholar* (0 XP) to *Grandmaster of Recall* (7,500 XP).
-- **3-Star Rating System**: Earn 1, 2, or 3 animated stars based on your session recall accuracy.
-- **Daily Streak Counter 🔥**: Tracks continuous study consistency with automated daily rollover.
-- **Achievement Badges**: Unlock milestones such as *First Step*, *Streak Starter*, *Dedicated Scholar*, *Century Club*, and *Sharpshooter*.
+### 📑 High-Yield Key Principles & Study Guide
+- Pre-quiz executive revision sheet on every deck page:
+  - **Part I**: Core Terminology & Definitions.
+  - **Part II**: Conceptual Distinctions & MCQ Rationales.
+  - Real-time search filter and print-to-PDF study sheet action.
 
-### 🎨 Apple-Inspired Design & Theming
-- Crisp, clean default **Light Theme** engineered for readability during long study sessions.
-- Seamless **Dark Mode** toggle persisted in `localStorage` with zero-flash rendering.
-- Fully responsive across desktop, tablet, and mobile devices.
-
-### 👤 Profile & Authentication
-- **Frictionless "Continue as Guest"**: Jump straight into studying without mandatory registration.
-- **Account Registration & Login**: Custom display names, password strength evaluation, and 10 custom avatar emojis.
+### 📱 Dual-Mode UI (Desktop Web vs. Native Mobile App)
+- **Desktop Web**: Spacious multi-column workspace with sidebar assessments, top navbar, and keyboard shortcuts (`Space` to flip, `1–4` to rate).
+- **Mobile App View**: Native iOS experience with a frosted glass bottom tab bar (`Today`, `Decks`, `+ Create`, `Notebook`, `Account`), thumb-reachable touch targets, and safe-area padding.
+- Automatically hides navigation during review sessions for 100% full-screen focus.
 
 ---
 
@@ -61,162 +68,128 @@ Unlike traditional flashcard apps where users passively flip cards, Cadence requ
 |---|---|
 | **Framework** | Next.js 16.3.5 (App Router, Turbopack) |
 | **Frontend** | React 19, TypeScript 5, Tailwind CSS v4 |
-| **Database & ORM** | SQLite, Prisma ORM 6.19 |
+| **Database & ORM** | SQLite, Prisma ORM 6.19 (with LibSQL / Turso adapter support) |
 | **Spaced Repetition** | `ts-fsrs` (v5.4.2) |
-| **AI Ingestion** | Google Gemini API (`gemini-1.5-flash` / `gemini-2.0`) & Anthropic SDK |
+| **AI Ingestion & Rationale** | Google Gemini API (`gemini-1.5-flash` / `gemini-2.0`) & Anthropic Claude SDK |
 | **File Parsing** | `pdf-parse` v1.1.1 |
 
 ---
 
-## 🚀 Workstation Transfer & Clone Instructions
+## 🚀 Cloning & Working Across Multiple Computers
 
-Follow these exact steps whenever you clone or transfer this repository to another workstation.
+Follow this exact guide whenever you want to set up, edit, or update Cadence on another desktop, laptop, or workstation.
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (version **18.18+** or **20+** recommended)
-- `npm` (bundled with Node.js) or `pnpm` / `yarn`
-- Git installed on your system
-- A [Google AI Studio API Key](https://aistudio.google.com/app/apikey) (Free)
+- [Node.js](https://nodejs.org/) (**v18.18+** or **v20+**)
+- `git` installed
+- A code editor (e.g., VS Code or Antigravity)
 
 ---
 
-### Step 1: Clone the Repository
+### A. First-Time Setup on a New Laptop or Desktop
 
+#### 1. Clone your repository
 ```bash
 git clone https://github.com/markwlsn/cadence.git
 cd cadence
 ```
 
----
-
-### Step 2: Install Dependencies
-
+#### 2. Install dependencies
 ```bash
 npm install
 ```
+*(Prisma Client will automatically generate via the `postinstall` script).*
 
----
-
-### Step 3: Configure Environment Variables
-
-Create your local `.env.local` file by copying the provided template:
-
+#### 3. Create your local environment file
+Copy the example file to `.env.local`:
 ```bash
-# On macOS / Linux
-cp .env.example .env.local
-
-# On Windows PowerShell
+# On Windows PowerShell:
 Copy-Item .env.example .env.local
+
+# On macOS / Linux:
+cp .env.example .env.local
 ```
 
-Open `.env.local` in your editor and add your API keys:
-
+Open `.env.local` and configure your keys:
 ```env
-# Database Configuration (SQLite)
+# Local SQLite database
 DATABASE_URL="file:./dev.db"
 
-# Google Gemini API Key (Required for AI deck generation)
-GEMINI_API_KEY="your_gemini_api_key_here"
-GEMINI_MODEL="gemini-1.5-flash"
+# AI Provider Key (Gemini or Claude)
+GEMINI_API_KEY="your-gemini-api-key-here"
+AI_PROVIDER="gemini"
 
-# Optional: Anthropic Fallback Provider
-ANTHROPIC_API_KEY=""
-
-# Offline Mock Testing Mode (Set to true if testing without an AI key)
+# Set to false to use live AI; true for offline mock mode
 USE_MOCKS=false
 PORT=3000
 ```
 
----
-
-### Step 4: Initialize the Database & Seed Sample Decks
-
-Generate the Prisma client, push the schema to create `dev.db`, and seed sample study decks:
-
+#### 4. Initialize the database
 ```bash
-# Generate Prisma Client & push schema to SQLite
 npm run db:push
-
-# Populate database with sample curated decks (Cell Biology, JavaScript Promises)
 npm run db:seed
 ```
 
----
-
-### Step 5: Run the Application
-
-#### Development Mode (with hot-reloading)
+#### 5. Start development
 ```bash
 npm run dev
 ```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-#### Production Build (optimized)
+---
+
+### B. Daily Workflow: Switching Between Computers
+
+Whenever you move from your desktop to your laptop (or vice versa):
+
+#### Step 1: Before you start working (Pull latest changes)
+Always pull the latest code so your machine is in sync with GitHub:
 ```bash
+git pull origin main
+```
+
+#### Step 2: Make your updates & test
+Work on your features or review cards. Run the automated checks:
+```bash
+# Run unit test suite
+npm run test:unit
+
+# Verify production build
 npm run build
-npm run start
 ```
 
-Visit **[http://localhost:3000](http://localhost:3000)** in your browser!
-
----
-
-## 📂 Project Architecture
-
-```
-cadence/
-├── app/
-│   ├── _components/          # Client dashboard components (Hero, Stats, Decks grid)
-│   ├── api/                  # Next.js Route Handlers
-│   │   ├── decks/            # GET / POST decks, ingest, stats, card generation
-│   │   └── review/           # GET queue, POST submit review (FSRS engine)
-│   ├── decks/
-│   │   ├── [id]/             # Deck dashboard & card browser
-│   │   │   ├── review/       # Active review session runner
-│   │   │   └── summary/      # 3-Star gamified review summary screen
-│   │   └── new/              # Multimodal AI ingestion form
-│   ├── login/                # Authentication & Guest entry
-│   ├── register/             # User registration with avatar selector
-│   ├── profile/              # Student stats, achievement badges & goals
-│   ├── globals.css           # Design tokens, keyframe animations, light/dark themes
-│   └── page.tsx              # Server-rendered home dashboard
-├── components/
-│   ├── review/
-│   │   ├── FlashCard.tsx     # Cloze, code blank, MCQ & basic card renderer
-│   │   └── CardStack.tsx     # Smooth gesture-driven card stack
-│   └── ui/
-│       ├── Navbar.tsx        # Global navigation with streak, XP & profile
-│       ├── ThemeToggle.tsx   # Sun/Moon animated switcher
-│       └── ...               # Button, Badge, ProgressRing, etc.
-├── lib/
-│   ├── ai/                   # Gemini & Claude multimodal integration
-│   ├── fsrs/                 # Spaced repetition scheduling core
-│   ├── utils/
-│   │   └── levenshtein.ts    # Typo tolerance & fuzzy grading engine
-│   ├── auth.ts               # Frictionless user & guest session manager
-│   ├── data.ts               # Unified API data access seam
-│   └── gamification.ts       # XP, levels, stars, badges & streak calculations
-└── prisma/
-    ├── schema.prisma         # Database models (Deck, Card, ReviewLogEntry)
-    └── seed.ts               # Sample study decks & seeded cards
+#### Step 3: Save and push your changes back
+```bash
+git add -A
+git commit -m "feat: your update message here"
+git push origin main
 ```
 
 ---
 
-## 📜 Available NPM Scripts
+### C. Live Cloud Deployment (Vercel)
+
+Cadence is configured for **Continuous Deployment** with Vercel:
+
+- **Automatic Sync**: Whenever you push changes to `main` from **any** laptop or desktop, Vercel automatically detects the commit, runs `npm run build`, and deploys your updates live in ~60 seconds.
+- **Zero Downtime**: Vercel keeps the previous version live until the new build passes successfully.
+- **Environment Variables on Vercel**: Ensure `GEMINI_API_KEY` (or `ANTHROPIC_API_KEY`) is added in your Vercel Project Dashboard under **Settings $\rightarrow$ Environment Variables**.
+
+---
+
+## 📜 Available Scripts
 
 | Command | Description |
 |---|---|
 | `npm run dev` | Starts local Next.js development server on port 3000 |
 | `npm run build` | Compiles optimized Next.js production build with TypeScript checks |
 | `npm run start` | Runs the compiled production server |
+| `npm run test:unit` | Executes unit tests on card quality gates and parsing algorithms |
 | `npm run db:push` | Synchronizes Prisma schema directly with local SQLite database |
-| `npm run db:seed` | Seeds curated decks and cards into SQLite database |
-| `npm run db:generate` | Re-generates Prisma Client types |
-| `npm run test:pipeline` | Verifies end-to-end AI ingestion and generation pipeline |
-| `npm run test:unit` | Executes unit tests on FSRS scheduling and utilities |
+| `npm run db:seed` | Seeds curated academic decks into the local database |
 
 ---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is open-source and licensed under the [MIT License](LICENSE).
