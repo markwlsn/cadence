@@ -295,7 +295,7 @@ export default function ReviewSessionPage() {
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)] select-none">
       {/* Review Header */}
       <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md">
-        <div className="max-w-2xl mx-auto px-2.5 sm:px-4 h-14 flex items-center justify-between gap-1.5 sm:gap-2">
+        <div className="max-w-4xl mx-auto px-2.5 sm:px-4 h-14 flex items-center justify-between gap-1.5 sm:gap-2">
           {/* Back button + Deck Title */}
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Link
@@ -374,7 +374,7 @@ export default function ReviewSessionPage() {
 
         {/* Question Jump Navigator (for 35-item exam or multi-card reviews) */}
         {cards.length > 5 && (
-          <div className="max-w-2xl mx-auto px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-[var(--color-border)] text-[11px]">
+          <div className="max-w-4xl mx-auto px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-[var(--color-border)] text-[11px]">
             <span className="text-[10px] uppercase font-bold text-[var(--color-text-tertiary)] shrink-0 mr-1">
               Jump:
             </span>
@@ -409,7 +409,7 @@ export default function ReviewSessionPage() {
       </header>
 
       {/* Main Review Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-2xl mx-auto">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-4xl mx-auto">
         {/* Card Stack */}
         <div className="w-full mb-6">
           <CardStack

@@ -49,6 +49,25 @@ function normalizeText(str: string): string {
     .replace(/\s+/g, ' ');
 }
 
+/** Clean up raw table-of-contents dots, citations, and numbers from option displays */
+export function cleanOptionDisplay(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\.{2,}/g, '') // strip trailing dotted leaders like .......
+    .replace(/\[\d+\]|\(\d+\)/g, '') // strip trailing [1] or (1) citations
+    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers
+    .trim();
+}
+
+/** Clean up raw table-of-contents dots and citations from question stems */
+export function cleanQuestionDisplay(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\.{3,}/g, '')
+    .replace(/\[\d+\]|\(\d+\)/g, '')
+    .trim();
+}
+
 /** Check if student cloze input matches expected answer (including code spacing tolerance) */
 function checkAnswerMatch(typed: string, expected: string): boolean {
   const normTyped = normalizeText(typed);
@@ -226,7 +245,7 @@ export function FlashCard({
 
   return (
     <div
-      className="card-flip-container w-full min-h-[350px] sm:min-h-[470px] h-[390px] sm:h-[490px] cursor-pointer select-none"
+      className="card-flip-container w-full min-h-[420px] sm:min-h-[500px] h-auto cursor-pointer select-none"
       onClick={() => {
         if (!isFlipped) onFlip();
       }}
@@ -244,9 +263,9 @@ export function FlashCard({
         }
       }}
     >
-      <div className={`card-flip-inner h-full w-full ${isFlipped ? 'is-flipped' : ''}`}>
+      <div className={`card-flip-inner min-h-[420px] sm:min-h-[500px] h-full w-full ${isFlipped ? 'is-flipped' : ''}`}>
         {/* ─── Front Side ─────────────────────────────────────────────────── */}
-        <div className="card-flip-front h-full w-full p-5 sm:p-7 flex flex-col justify-between rounded-[var(--radius-lg)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] shadow-[var(--shadow-md)] overflow-y-auto">
+        <div className="card-flip-front min-h-[420px] sm:min-h-[500px] h-full w-full p-5 sm:p-8 flex flex-col justify-between rounded-[var(--radius-lg)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] shadow-[var(--shadow-md)] overflow-y-auto">
           {/* Top Bar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -265,7 +284,7 @@ export function FlashCard({
           </div>
 
           {/* Question / Prompt Body */}
-          <div className="my-auto flex flex-col items-center justify-center text-center w-full max-w-xl mx-auto py-2">
+          <div className="my-auto flex flex-col items-center justify-center text-center w-full max-w-2xl sm:max-w-3xl mx-auto py-2">
             {/* 1. CLOZE / FILL IN THE BLANK */}
             {card.type === 'cloze' && (
               <div className="w-full flex flex-col items-center">
@@ -418,19 +437,19 @@ export function FlashCard({
             {/* 2. MCQ (MULTIPLE CHOICE) */}
             {card.type === 'mcq' && (
               <div className="w-full flex flex-col items-center">
-                <div className="text-[18px] sm:text-[21px] font-semibold leading-relaxed text-[var(--color-text)] mb-3">
+                <div className="text-[18px] sm:text-[22px] font-semibold leading-relaxed text-[var(--color-text)] mb-3 max-w-2xl">
                   {isCode ? (
                     <div className="text-left rounded-xl overflow-hidden border border-[#333333] bg-[#1e1e1e] text-[#d4d4d4] font-mono text-[13px] sm:text-[14px] p-4 my-2">
                       <pre className="whitespace-pre-wrap leading-relaxed">{cleanCodeText(card.front)}</pre>
                     </div>
                   ) : (
-                    renderFormattedInlineText(card.front)
+                    renderFormattedInlineText(cleanQuestionDisplay(card.front))
                   )}
                 </div>
 
                 {card.options && (
                   <div
-                    className="grid grid-cols-1 gap-2.5 w-full max-w-md mt-2"
+                    className="grid grid-cols-1 gap-2.5 sm:gap-3 w-full max-w-2xl sm:max-w-3xl mt-2"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                   >
@@ -450,7 +469,7 @@ export function FlashCard({
                             buttonStyle =
                               'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold ring-2 ring-emerald-500/40';
                             badgeIcon = (
-                              <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[12px] font-bold">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">
                                 ✓
                               </span>
                             );
@@ -458,7 +477,7 @@ export function FlashCard({
                             buttonStyle =
                               'border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300 font-semibold ring-2 ring-rose-500/40';
                             badgeIcon = (
-                              <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[12px] font-bold">
+                              <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[12px] font-bold shrink-0">
                                 ✕
                               </span>
                             );
@@ -467,7 +486,7 @@ export function FlashCard({
                           buttonStyle =
                             'border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium';
                           badgeIcon = (
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded">
+                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded shrink-0">
                               Correct
                             </span>
                           );
@@ -480,18 +499,20 @@ export function FlashCard({
                           type="button"
                           onClick={() => handleSelectMcq(idx)}
                           className={[
-                            'w-full text-left px-4 py-2.5 rounded-[var(--radius-md)] border text-[14px] sm:text-[15px]',
+                            'w-full text-left px-4 py-3 sm:py-3.5 rounded-[var(--radius-md)] border text-[14px] sm:text-[15px]',
                             'transition-all duration-[var(--duration-fast)] flex items-center justify-between gap-3 cursor-pointer shadow-sm',
                             buttonStyle,
                           ].join(' ')}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-6 h-6 rounded-full bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[12px] font-mono font-bold flex items-center justify-center flex-shrink-0">
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <span className="w-6 h-6 rounded-full bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] text-[12px] font-mono font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                               {letter}
                             </span>
-                            <span className="truncate">{option}</span>
+                            <span className="text-left break-words leading-relaxed flex-1 font-medium text-[14px] sm:text-[15px]">
+                              {cleanOptionDisplay(option)}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
                             {badgeIcon}
                             <span className="text-[11px] opacity-40 font-mono hidden sm:inline">
                               [{idx + 1}]
@@ -709,7 +730,7 @@ export function FlashCard({
 
             {/* 2. MCQ BACK */}
             {card.type === 'mcq' && card.options && (
-              <div className="w-full max-w-md my-2 space-y-2 text-left">
+              <div className="w-full max-w-2xl sm:max-w-3xl my-2 space-y-2.5 text-left">
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block">
                   Choices Breakdown
                 </span>
@@ -726,7 +747,7 @@ export function FlashCard({
                     rowStyle =
                       'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-semibold opacity-100 ring-1 ring-emerald-500/30';
                     badge = (
-                      <span className="text-[11px] font-semibold bg-emerald-500 text-white px-2 py-0.5 rounded-full">
+                      <span className="text-[11px] font-semibold bg-emerald-500 text-white px-2 py-0.5 rounded-full shrink-0">
                         ✓ Correct Answer
                       </span>
                     );
@@ -734,7 +755,7 @@ export function FlashCard({
                     rowStyle =
                       'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-semibold opacity-100 ring-1 ring-rose-500/30';
                     badge = (
-                      <span className="text-[11px] font-semibold bg-rose-500 text-white px-2 py-0.5 rounded-full">
+                      <span className="text-[11px] font-semibold bg-rose-500 text-white px-2 py-0.5 rounded-full shrink-0">
                         ✕ Your Choice
                       </span>
                     );
@@ -743,15 +764,19 @@ export function FlashCard({
                   return (
                     <div
                       key={idx}
-                      className={`px-3.5 py-2.5 rounded-[var(--radius-md)] border text-[14px] flex items-center justify-between gap-2 ${rowStyle}`}
+                      className={`px-4 py-3 rounded-[var(--radius-md)] border text-[14px] sm:text-[15px] flex items-center justify-between gap-3 ${rowStyle}`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="font-mono font-bold text-[12px]">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <span className="font-mono font-bold text-[12px] mt-0.5 shrink-0">
                           {String.fromCharCode(65 + idx)}.
                         </span>
-                        <span className="truncate">{option}</span>
+                        <span className="text-left break-words leading-relaxed flex-1">
+                          {cleanOptionDisplay(option)}
+                        </span>
                       </div>
-                      {badge}
+                      <div className="shrink-0">
+                        {badge}
+                      </div>
                     </div>
                   );
                 })}

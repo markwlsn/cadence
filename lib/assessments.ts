@@ -84,27 +84,55 @@ export const ASSESSMENT_CONFIGS: Omit<DeckAssessment, 'targetCount' | 'estimated
   },
 ];
 
+/** Clean up raw table-of-contents dots, citations, and numbers from option displays */
+export function cleanOptionDisplay(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\.{2,}/g, '') // strip trailing dotted leaders like .......
+    .replace(/…+/g, '') // strip unicode ellipses
+    .replace(/\[\d+\]|\(\d+\)/g, '') // strip trailing [1] or (1) citations
+    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Clean up raw table-of-contents dots and citations from question stems */
+export function cleanQuestionDisplay(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\.{2,}/g, '')
+    .replace(/…+/g, '')
+    .replace(/\[\d+\]|\(\d+\)/g, '')
+    .replace(/(["'])\s*(?:\d+[\.\)]|[a-zA-Z][\.\)])\s*/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Normalizes any card into a strict 4-choice Multiple Choice Question (MCQ).
  * Pulls plausible distractors from the deck to ensure 100% MCQ standardization.
  */
 export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0): Card {
-  const correct = (card.back || '').trim();
+  const cleanFront = cleanQuestionDisplay(card.front || '');
+  const correct = cleanOptionDisplay(card.back || '').trim();
 
-  // If already MCQ with 4 options and back matches one of them, return it
+  // If already MCQ with 4 options and back matches one of them, clean and return it
   if (
     card.type === 'mcq' &&
     Array.isArray(card.options) &&
     card.options.length >= 4
   ) {
-    const hasCorrect = card.options.some(
-      (opt) => opt.trim().toLowerCase() === correct.toLowerCase()
+    const cleanedOpts = card.options.map((opt) => cleanOptionDisplay(opt)).filter(Boolean);
+    const hasCorrect = cleanedOpts.some(
+      (opt) => opt.toLowerCase() === correct.toLowerCase()
     );
-    if (hasCorrect) {
+    if (hasCorrect && cleanedOpts.length >= 4) {
       return {
         ...card,
+        front: cleanFront,
+        back: correct,
         type: 'mcq',
-        options: card.options.slice(0, 4),
+        options: cleanedOpts.slice(0, 4),
       };
     }
   }
@@ -113,21 +141,24 @@ export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0
   const candidatePool: string[] = [];
   if (card.options && Array.isArray(card.options)) {
     for (const opt of card.options) {
-      if (opt && opt.trim() && opt.trim().toLowerCase() !== correct.toLowerCase()) {
-        candidatePool.push(opt.trim());
+      const c = cleanOptionDisplay(opt);
+      if (c && c.toLowerCase() !== correct.toLowerCase()) {
+        candidatePool.push(c);
       }
     }
   }
 
   for (const other of allCards) {
     if (other.id !== card.id) {
-      if (other.back && other.back.trim() && other.back.trim().toLowerCase() !== correct.toLowerCase()) {
-        candidatePool.push(other.back.trim());
+      const otherBack = cleanOptionDisplay(other.back || '');
+      if (otherBack && otherBack.toLowerCase() !== correct.toLowerCase()) {
+        candidatePool.push(otherBack);
       }
       if (Array.isArray(other.options)) {
         for (const opt of other.options) {
-          if (opt && opt.trim() && opt.trim().toLowerCase() !== correct.toLowerCase()) {
-            candidatePool.push(opt.trim());
+          const c = cleanOptionDisplay(opt);
+          if (c && c.toLowerCase() !== correct.toLowerCase()) {
+            candidatePool.push(c);
           }
         }
       }
@@ -137,15 +168,46 @@ export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0
   // Deduplicate candidates
   const uniqueCandidates = Array.from(new Set(candidatePool));
 
-  // Fallback academic distractors if deck has very few items
-  const academicFallbacks = [
-    'Directly inhibits upstream metabolic precursors',
-    'Independent of membrane potential and ionic flux',
-    'Occurs only during anaerobic conditions',
-    'Requires non-enzymatic phosphorylation',
-    'Inversely proportional to initial reactant concentration',
-    'None of the stated physiological criteria apply',
-  ];
+  // Domain detection for appropriate fallback distractors
+  const context = `${card.front || ''} ${card.back || ''} ${card.explanation || ''}`.toLowerCase();
+  const isSecurity = /(?:security|network|firewall|bios|port|vulnerability|hardening|privilege|auth|encrypt|cipher|protocol|tpm|siem|packet|access|router|server)/i.test(context);
+  const isBiology = /(?:cell|membrane|protein|enzyme|atp|dna|rna|gene|metabolic|respiration|synthesis|organism|tissue)/i.test(context);
+  const isBusiness = /(?:market|finance|capital|revenue|strategy|cost|kpi|management|stakeholder|audit|policy)/i.test(context);
+
+  const domainFallbacks = isSecurity
+    ? [
+        'Restricted to local administrative console',
+        'Requires TPM 2.0 cryptographic attestation',
+        'Bypasses perimeter packet inspection filters',
+        'Enforced via multi-factor conditional access',
+        'Disabled by default to minimize attack surface',
+        'Monitored via centralized SIEM audit alerts',
+      ]
+    : isBiology
+    ? [
+        'Modulates allosteric enzyme binding affinity',
+        'Dependent on transmembrane proton gradients',
+        'Catalyzed via ATP-dependent phosphorylation',
+        'Regulates intracellular osmotic equilibrium',
+        'Operates via negative feedback inhibition',
+        'Inversely proportional to reactant concentration',
+      ]
+    : isBusiness
+    ? [
+        'Mitigates operational compliance exposure',
+        'Maximizes return on invested capital',
+        'Aligns operational milestones with quarterly KPIs',
+        'Decentralizes governance to local stakeholders',
+        'Improves liquidity ratios across fiscal quarters',
+      ]
+    : [
+        'Operates independently of baseline system constraints',
+        'Pre-established regulatory or design standard',
+        'Requires systematic empirical verification',
+        'Dynamic equilibrium under operational load',
+        'Decentralized hierarchical framework',
+        'Restricted exclusively to isolated testing configurations',
+      ];
 
   const distractors: string[] = [];
   // Use a pseudo-random seed based on card id or seed index for determinism
@@ -167,10 +229,10 @@ export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0
     if (distractors.length === uniqueCandidates.length) break;
   }
 
-  // If still need distractors, fill with academic fallbacks
-  let fallbackIdx = positiveHash % academicFallbacks.length;
+  // If still need distractors, fill with domain-appropriate fallbacks
+  let fallbackIdx = positiveHash % domainFallbacks.length;
   while (distractors.length < 3) {
-    const fb = academicFallbacks[fallbackIdx % academicFallbacks.length];
+    const fb = domainFallbacks[fallbackIdx % domainFallbacks.length];
     if (!distractors.includes(fb) && fb.toLowerCase() !== correct.toLowerCase()) {
       distractors.push(fb);
     }
@@ -193,6 +255,8 @@ export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0
 
   return {
     ...card,
+    front: cleanFront,
+    back: correct,
     type: 'mcq',
     options: fourOptions,
   };

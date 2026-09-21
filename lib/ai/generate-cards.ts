@@ -51,29 +51,33 @@ Your task: given a text chunk, produce multiple-choice questions (MCQs) that for
 
 RULES (non-negotiable):
 1. Standard card type is multiple choice ("mcq") with exactly 4 options.
-2. NEVER produce a card whose "back" can be found by scanning the source text for 2–3 seconds. Every question must require synthesis, inference, or recall of a mechanism or relationship.
-3. BAD question: "What is the mitochondria?" → answer is a copy-pasted definition.
-   GOOD question: "Why does blocking the electron transport chain halt ATP synthesis?" → requires understanding a causal mechanism.
-4. For all "mcq" cards: "options" MUST contain exactly 4 distinct items: the FIRST item in "options" is always the correct answer (matching "back"), followed by 3 realistic distractors.
-5. Distractors MUST each reflect a real, documented misconception or a plausible near-neighbour concept. Never use obviously wrong, trivial, or placeholder text.
-6. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, why common distractors are incorrect, or a real-world implication. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. \`\`\`mermaid graph TD; A-->B \`\`\`) as an alternative visual aid.
-7. Respond ONLY with a valid JSON array. No preamble, no markdown code fences wrapping the array, no commentary.
+2. CONCISE KEYWORD & KEY PHRASE ANSWERS: The correct answer ("back") and each distractor in "options" MUST be concise keywords, key concepts, or short phrases (1 to 8 words). Do NOT write full conversational sentences, entire paragraphs, or split sentences as options. The learner needs punchy, unambiguous keyword options that directly answer or complete the question.
+3. DISTRACTORS: Must be realistic, plausible near-neighbours or documented misconceptions from the exact same subject domain, matching the grammar and concise keyword style of the correct answer.
+4. CLEAN TEXT (CRITICAL): NEVER include document formatting artifacts such as trailing dots/periods (e.g. '..........'), citation brackets (e.g. '[1]', '[2]'), page numbers, or outline numbering (e.g. '1.', 'A.') in questions, answers, or options.
+5. Every question stem ("front") must be a clear, self-contained prompt testing a specific concept, security standard, causal mechanism, or distinction.
+6. For all "mcq" cards: "options" MUST contain exactly 4 distinct items: the FIRST item in "options" is always the correct answer (matching "back"), followed by 3 realistic distractors.
+7. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, why common distractors are incorrect, or a real-world implication. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. \`\`\`mermaid graph TD; A-->B \`\`\`) as an alternative visual aid.
+8. Respond ONLY with a valid JSON array. No preamble, no markdown code fences wrapping the array, no commentary.
 
 OUTPUT SCHEMA (JSON array of objects):
 [
   {
     "front": "string — clear, active-recall multiple choice question stem",
-    "back": "string — concise correct answer, at most 30 words",
+    "back": "string — concise keyword or key phrase (1–8 words) that directly completes or answers the question",
     "type": "mcq",
     "explanation": "string — at least 10 words of pedagogical context and distractor rationale",
-    "options": ["correct answer", "distractor 1", "distractor 2", "distractor 3"]
+    "options": ["concise correct answer (1-8 words)", "concise distractor 1", "concise distractor 2", "concise distractor 3"]
   }
 ]
 Note: For "mcq", the FIRST item in "options" must always be the correct answer.`;
 
 function buildUserPrompt(chunk: string, count: number): string {
   return `Generate ${count} retrieval-practice multiple-choice questions (type: "mcq") with exactly 4 options for the following text.
-Ensure each question tests active recall, mechanisms, or conceptual distinctions, with 3 plausible distractors.
+Requirements:
+- Each question must test active recall, mechanisms, or conceptual distinctions.
+- The answer ("back") and all 4 options must be CONCISE KEYWORDS or short key phrases (1–8 words max) that match or complete the question.
+- Do NOT output long sentences as answers.
+- Strip all trailing dots ("..."), citations ("[1]"), and page artifacts.
 
 SOURCE TEXT:
 ${chunk}`;
@@ -198,6 +202,15 @@ function applyQualityGate(cards: CardPayload[], sourceChunk: string): GateResult
     // Cloze cards: the back is the missing term from the sentence.
     // Testing LCS against the chunk for a 1-word answer will always yield 1.0 (false positive).
     if (card.type === 'cloze') {
+      passed.push(card);
+      continue;
+    }
+
+    // Concise keyword / phrase answers (<= 8 words):
+    // Testing LCS against the chunk for concise target terms (e.g. "Demilitarized Zone", "Least Privilege")
+    // yields a false positive (ratio 1.0) because key terminology is naturally present in notes.
+    const wordCount = card.back.trim().split(/\s+/).filter(Boolean).length;
+    if (card.type === 'mcq' && wordCount <= 8) {
       passed.push(card);
       continue;
     }
@@ -337,62 +350,179 @@ function hydrateCard(payload: CardPayload, deckId: string): Card {
 }
 
 // ---------------------------------------------------------------------------
+/** Clean table-of-contents dots, citations, and list artifacts */
+function cleanTextSnippet(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\.{2,}/g, '') // remove trailing dot leaders ........
+    .replace(/…+/g, '') // remove unicode ellipses
+    .replace(/\[\d+\]|\(\d+\)/g, '') // remove [1] or (1) citations
+    .replace(/^[-*•\d.)]+\s*/, '') // remove leading bullet numbers
+    .replace(/\s+\d+$/, '') // remove trailing page numbers
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Synthesizes structured 4-choice retrieval practice cards directly from a text chunk
  * if the AI provider is unconfigured or encounters a temporary API outage.
+ * Extracts concise keywords / key phrases (1–8 words) and domain-relevant distractors.
  */
 export function generateFallbackCardsForChunk(chunk: string, deckId: string): CardPayload[] {
-  const sentences = chunk
-    .split(/(?<=[.?!])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 25 && s.length <= 250);
+  const lines = chunk
+    .split(/(?<=[.?!])\s+|\n+/)
+    .map((s) => cleanTextSnippet(s))
+    .filter((s) => s.length >= 15 && s.length <= 250);
 
   const payloads: CardPayload[] = [];
 
-  const baseDistractors = [
-    'Directly inhibits upstream metabolic synthesis',
-    'Independent of electrochemical and membrane potentials',
-    'Restricted exclusively to anaerobic resting states',
-    'Requires non-enzymatic spontaneous phosphorylation',
-    'Inversely proportional to baseline reactant concentrations',
+  // Determine domain
+  const lowerChunk = chunk.toLowerCase();
+  const isSecurityOrTech = /(?:security|network|firewall|bios|port|vulnerability|hardening|privilege|auth|encrypt|cipher|protocol|tpm|siem|packet|access|router|server|system|software|daemon|linux|windows)/i.test(lowerChunk);
+  const isBiologyOrMedical = /(?:cell|membrane|protein|enzyme|atp|dna|rna|gene|metabolic|respiration|synthesis|organism|tissue|receptor)/i.test(lowerChunk);
+  const isBusinessOrGov = /(?:market|finance|capital|revenue|strategy|cost|kpi|management|stakeholder|audit|policy|compliance)/i.test(lowerChunk);
+
+  const securityDistractors = [
+    'Restricted to local administrative console',
+    'Requires TPM 2.0 cryptographic attestation',
+    'Bypasses perimeter packet inspection filters',
+    'Enforced via multi-factor conditional access',
+    'Disabled by default to minimize attack surface',
+    'Monitored via centralized SIEM audit alerts',
+    'Mandates minimum 128-bit key entropy',
+    'Isolates untrusted ingress perimeter traffic',
   ];
 
-  for (let sIdx = 0; sIdx < Math.min(sentences.length, 4); sIdx++) {
-    const sent = sentences[sIdx];
-    const words = sent.split(/\s+/);
-    if (words.length >= 6) {
-      const mid = Math.floor(words.length / 2);
-      const questionStem = `What is the core principle governing: "${words.slice(0, mid).join(' ')}…"?`;
-      const correctAnswer = words.slice(mid).join(' ').replace(/[.?!]$/, '');
+  const biologyDistractors = [
+    'Modulates allosteric enzyme binding affinity',
+    'Dependent on transmembrane proton gradients',
+    'Catalyzed via ATP-dependent phosphorylation',
+    'Regulates intracellular osmotic equilibrium',
+    'Operates via negative feedback inhibition',
+    'Inversely proportional to reactant concentration',
+  ];
 
-      const distractors = [
-        baseDistractors[(sIdx * 2) % baseDistractors.length],
-        baseDistractors[(sIdx * 2 + 1) % baseDistractors.length],
-        baseDistractors[(sIdx * 2 + 2) % baseDistractors.length],
-      ];
+  const businessDistractors = [
+    'Mitigates operational compliance exposure',
+    'Maximizes return on invested capital',
+    'Aligns operational milestones with quarterly KPIs',
+    'Decentralizes governance to local stakeholders',
+    'Improves liquidity ratios across fiscal quarters',
+  ];
+
+  const generalDistractors = [
+    'Operates independently of baseline constraints',
+    'Pre-established regulatory or design standard',
+    'Requires systematic empirical verification',
+    'Dynamic equilibrium under operational load',
+    'Decentralized hierarchical framework',
+    'Restricted exclusively to isolated testing modes',
+  ];
+
+  const activeDistractors = isSecurityOrTech
+    ? securityDistractors
+    : isBiologyOrMedical
+    ? biologyDistractors
+    : isBusinessOrGov
+    ? businessDistractors
+    : generalDistractors;
+
+  for (let sIdx = 0; sIdx < Math.min(lines.length, 5); sIdx++) {
+    const rawLine = lines[sIdx];
+    const cleaned = cleanTextSnippet(rawLine);
+    if (!cleaned || cleaned.length < 15) continue;
+
+    // Pattern 1: Colon definition e.g. "Term: definition" or "Principle - explanation"
+    const colonMatch = cleaned.match(/^([^:–—]+)[:–—]\s*(.+)$/);
+    if (colonMatch && colonMatch[1].trim().split(/\s+/).length <= 6) {
+      const term = colonMatch[1].trim();
+      const desc = colonMatch[2].trim();
+      const d1 = activeDistractors[(sIdx * 2) % activeDistractors.length];
+      const d2 = activeDistractors[(sIdx * 2 + 1) % activeDistractors.length];
+      const d3 = activeDistractors[(sIdx * 2 + 2) % activeDistractors.length];
 
       payloads.push({
-        front: questionStem,
-        back: correctAnswer,
+        front: `Which concept or standard defines: "${desc}"?`,
+        back: term,
         type: 'mcq',
-        explanation: `This question evaluates active synthesis of the relationship stated in the source text: "${sent}". Common distractors describe unrelated regulatory or metabolic mechanisms.`,
-        options: [correctAnswer, ...distractors],
+        explanation: `In this curriculum context, "${term}" specifically denotes: ${desc}. Other options represent alternative distinct principles.`,
+        options: [term, d1, d2, d3],
+      });
+      continue;
+    }
+
+    // Pattern 2: Copula / Rule statements like "BIOS Security is not enabled" or "Port 22 should be closed"
+    const verbMatch = cleaned.match(/^(.+?)\s+(is not|is|are not|are|must be|should be|requires|provides|prevents)\s+(.+)$/i);
+    if (verbMatch && verbMatch[1].trim().split(/\s+/).length <= 6) {
+      const subject = verbMatch[1].trim();
+      const verb = verbMatch[2].trim().toLowerCase();
+      const remainder = verbMatch[3].trim().replace(/[.?!]$/, '');
+
+      const remainderWords = remainder.split(/\s+/);
+      const answerSnippet = remainderWords.slice(0, 6).join(' ');
+      let conciseAnswer = '';
+      if (verb.includes('not')) {
+        if (/enabled/i.test(remainder)) conciseAnswer = 'Disabled / Not enabled';
+        else if (/configured/i.test(remainder)) conciseAnswer = 'Not configured';
+        else conciseAnswer = `Not ${answerSnippet}`;
+      } else {
+        if (/enabled/i.test(remainder)) conciseAnswer = 'Enabled / Active';
+        else if (/required|mandatory/i.test(remainder)) conciseAnswer = 'Mandatory requirement';
+        else conciseAnswer = answerSnippet.charAt(0).toUpperCase() + answerSnippet.slice(1);
+      }
+
+      const d1 = activeDistractors[(sIdx * 2) % activeDistractors.length];
+      const d2 = activeDistractors[(sIdx * 2 + 1) % activeDistractors.length];
+      const d3 = activeDistractors[(sIdx * 2 + 2) % activeDistractors.length];
+
+      payloads.push({
+        front: `What is the standard configuration or status regarding ${subject}?`,
+        back: conciseAnswer,
+        type: 'mcq',
+        explanation: `According to the study material, ${subject} ${verb} ${remainder}. This MCQ assesses active retention of required baseline configurations.`,
+        options: [conciseAnswer, d1, d2, d3],
+      });
+      continue;
+    }
+
+    // Pattern 3: General concise keyword extraction
+    const words = cleaned.split(/\s+/);
+    if (words.length >= 5) {
+      const topicWords = words.slice(0, Math.min(4, words.length));
+      const topic = topicWords.join(' ');
+      const restWords = words.slice(topicWords.length);
+      const answerWords = restWords.slice(0, Math.min(6, restWords.length));
+      const conciseAnswer = answerWords.join(' ').replace(/[.?!]$/, '');
+
+      const d1 = activeDistractors[(sIdx * 2) % activeDistractors.length];
+      const d2 = activeDistractors[(sIdx * 2 + 1) % activeDistractors.length];
+      const d3 = activeDistractors[(sIdx * 2 + 2) % activeDistractors.length];
+
+      payloads.push({
+        front: `What key requirement or guideline is associated with "${topic}"?`,
+        back: conciseAnswer,
+        type: 'mcq',
+        explanation: `This question evaluates active recall of "${cleaned}". Distractors represent alternative technical criteria or system behaviors.`,
+        options: [conciseAnswer, d1, d2, d3],
       });
     }
   }
 
   if (payloads.length === 0) {
-    const cleanChunk = chunk.replace(/\s+/g, ' ').slice(0, 150);
+    const cleanChunk = cleanTextSnippet(chunk).slice(0, 100);
+    const d1 = activeDistractors[0];
+    const d2 = activeDistractors[1];
+    const d3 = activeDistractors[2];
     payloads.push({
-      front: `What is the primary conclusion established regarding: "${cleanChunk}…"?`,
-      back: 'It establishes foundational conceptual relationships essential for systematic curriculum recall.',
+      front: `What is the foundational requirement established regarding: "${cleanChunk}"?`,
+      back: isSecurityOrTech ? 'Enforced baseline security control' : 'Core foundational principle',
       type: 'mcq',
       explanation: 'Active recall card generated directly from study notes to verify comprehension of core subject principles.',
       options: [
-        'It establishes foundational conceptual relationships essential for systematic curriculum recall.',
-        'It disproves prior experimental paradigms through contradiction.',
-        'It operates independently of structural and systemic variables.',
-        'It is exclusively applicable under artificial laboratory constraints.',
+        isSecurityOrTech ? 'Enforced baseline security control' : 'Core foundational principle',
+        d1,
+        d2,
+        d3,
       ],
     });
   }
