@@ -97,14 +97,14 @@ export async function generateTextWithAI(options: {
       );
     }
 
-    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
     const modelsToTry = [
       ...new Set([
         preferredModel,
+        'gemini-3.5-flash',
         'gemini-3.6-flash',
         'gemini-3.5-flash-lite',
         'gemini-3-flash-preview',
-        'gemini-3.5-flash',
       ]),
     ];
 
@@ -242,14 +242,14 @@ export async function transcribeImageWithAI(options: {
       );
     }
 
-    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
     const modelsToTry = [
       ...new Set([
         preferredModel,
+        'gemini-3.5-flash',
         'gemini-3.6-flash',
         'gemini-3.5-flash-lite',
         'gemini-3-flash-preview',
-        'gemini-3.5-flash',
       ]),
     ];
     const base64Data = options.imageBuffer.toString('base64');
