@@ -74,7 +74,7 @@ export function Navbar() {
       className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-md"
       role="banner"
     >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-5xl mx-auto px-3.5 sm:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
         {/* ── Left: Logo ── */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group" aria-label="Cadence home">
           <CadenceLogo size={32} />
@@ -109,7 +109,7 @@ export function Navbar() {
         </nav>
 
         {/* ── Right: Clean Consolidated Actions ── */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Quick Action: New Deck (STRICTLY for authenticated registered users) */}
           {mounted && user && !user.isGuest && (
             <Link
@@ -129,16 +129,16 @@ export function Navbar() {
 
           {/* Auth State: Sign In / Register for Guests, Profile Avatar for Registered Students */}
           {mounted && user?.isGuest ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/login"
-                className="text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2.5 py-1.5 rounded-[var(--radius-sm)] transition-colors"
+                className="text-[12px] sm:text-[13px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2 sm:px-2.5 py-1.5 rounded-[var(--radius-sm)] transition-colors whitespace-nowrap"
               >
                 Sign In
               </Link>
               <Link
                 href="/register"
-                className="text-[13px] font-semibold text-[var(--color-btn-primary-text)] bg-[var(--color-btn-primary-bg)] hover:bg-[var(--color-btn-primary-hover)] px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors shadow-sm"
+                className="text-[12px] sm:text-[13px] font-semibold text-[var(--color-btn-primary-text)] bg-[var(--color-btn-primary-bg)] hover:bg-[var(--color-btn-primary-hover)] px-2.5 sm:px-3 py-1.5 rounded-[var(--radius-sm)] transition-colors shadow-sm whitespace-nowrap"
               >
                 Register
               </Link>

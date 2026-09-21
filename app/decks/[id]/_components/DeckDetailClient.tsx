@@ -67,20 +67,20 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <DeckManageActions
             deckId={deck.id}
             deckTitle={deck.title}
             isArchived={Boolean(deck.isArchived)}
           />
-          <div className="flex items-center gap-2">
-            <Link href={`/decks/${deck.id}/review?mode=cram`}>
-              <Button variant="secondary" size="md">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Link href={`/decks/${deck.id}/review?mode=cram`} className="flex-1 sm:flex-initial">
+              <Button variant="secondary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px]">
                 Cram All ({stats.totalCards})
               </Button>
             </Link>
-            <Link href={`/decks/${deck.id}/review?mode=mastery`}>
-              <Button variant="primary" size="md">
+            <Link href={`/decks/${deck.id}/review?mode=mastery`} className="flex-1 sm:flex-initial">
+              <Button variant="primary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px]">
                 Start Review ({stats.dueNow > 0 ? stats.dueNow : stats.totalCards})
               </Button>
             </Link>
@@ -89,9 +89,9 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
       </section>
 
       {/* ── 2. Diagnostic Exam Readiness Score Card ────────────────────── */}
-      <section className="p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-5">
+      <section className="p-4 sm:p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-5 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
             <div className="relative flex items-center justify-center shrink-0">
               <ProgressRing
                 percent={mounted && readiness ? readiness.score : masteryPercent}
@@ -171,8 +171,8 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
             name="deck-view-mode"
             size="md"
             options={[
-              { value: 'curriculum', label: 'Linear Curriculum Roadmap' },
-              { value: 'guide', label: 'High-Yield Key Principles' },
+              { value: 'curriculum', label: 'Curriculum Roadmap' },
+              { value: 'guide', label: 'Key Principles' },
             ]}
             value={activeTab}
             onChange={(val) => setActiveTab(val as 'curriculum' | 'guide')}

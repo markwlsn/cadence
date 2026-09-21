@@ -142,16 +142,44 @@ html.dark {
 
 /* ─── Base Styles ──────────────────────────────────────────────────────────── */
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  touch-action: manipulation;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
     "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  max-width: 100%;
+  height: auto;
 }
 
 /* ─── Focus Ring (accessible, not ugly) ────────────────────────────────────── */

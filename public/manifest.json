@@ -1,0 +1,19 @@
+{
+  "name": "Cadence · Academic AI Reviewer",
+  "short_name": "Cadence",
+  "description": "Spaced-repetition study app with linear curriculum and active recall.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#FBFBFD",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

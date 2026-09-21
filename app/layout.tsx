@@ -36,6 +36,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Cadence",
   },
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 import { MobileTabBar } from "@/components/ui";
@@ -48,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
-        className="min-h-full flex flex-col transition-colors duration-200"
+        className="min-h-full flex flex-col transition-colors duration-200 overflow-x-hidden w-full max-w-full"
         style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
       >
         <Script

@@ -23,7 +23,7 @@ export default async function DeckDashboardPage({ params }: DeckDashboardProps) 
       <Navbar />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-6 pt-6 pb-28 md:py-12">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 pt-6 pb-28 md:py-12">
         {/* Breadcrumb & Back navigation */}
         <div className="flex items-center gap-2 mb-6">
           <BackButton href="/" label="Dashboard" />

@@ -20,10 +20,10 @@ export default function WelcomeLanding() {
 
           {/* Main Title */}
           <div className="space-y-4">
-            <h1 className="text-[36px] sm:text-[56px] lg:text-[64px] font-bold tracking-tight text-[var(--color-text)] leading-[1.1] max-w-3xl mx-auto">
+            <h1 className="text-[32px] sm:text-[52px] lg:text-[64px] font-bold tracking-tight text-[var(--color-text)] leading-[1.12] max-w-3xl mx-auto break-words">
               Master any curriculum with structured AI review.
             </h1>
-            <p className="text-[17px] sm:text-[20px] text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed font-normal">
+            <p className="text-[16px] sm:text-[20px] text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed font-normal">
               Transform lecture notes, textbook PDFs, and study materials into linear assessment sequences and long-term memory.
             </p>
           </div>
@@ -51,82 +51,82 @@ export default function WelcomeLanding() {
           </div>
 
           {/* ── Visual Preview Card ───────────────────────────────────── */}
-          <div className="pt-8 max-w-2xl mx-auto">
-            <div className="rounded-[var(--radius-xl)] bg-[var(--color-surface)] border border-[var(--color-border)] p-6 sm:p-8 shadow-[var(--shadow-lg)] text-left space-y-6">
-              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[20px]">
+          <div className="pt-8 w-full max-w-2xl mx-auto">
+            <div className="rounded-[var(--radius-xl)] bg-[var(--color-surface)] border border-[var(--color-border)] p-4 sm:p-6 md:p-8 shadow-[var(--shadow-lg)] text-left space-y-5 sm:space-y-6 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[20px] shrink-0">
                     🔬
                   </div>
-                  <div>
-                    <h2 className="text-[16px] font-bold text-[var(--color-text)] leading-snug">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[15px] sm:text-[16px] font-bold text-[var(--color-text)] leading-snug truncate sm:whitespace-normal">
                       Molecular Genetics &amp; Inheritance
                     </h2>
-                    <p className="text-[12px] text-[var(--color-text-secondary)]">
-                      Linear Curriculum · 6 Structured Assessments · 35 Total Questions
+                    <p className="text-[12px] text-[var(--color-text-secondary)] truncate sm:whitespace-normal">
+                      Linear Curriculum · 6 Assessments · 35 Items
                     </p>
                   </div>
                 </div>
-                <span className="hidden sm:inline-block text-[11px] font-bold px-2.5 py-1 rounded-full bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)]">
+                <span className="hidden sm:inline-block text-[11px] font-bold px-2.5 py-1 rounded-full bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] shrink-0">
                   92% Retained
                 </span>
               </div>
 
               {/* Curriculum Progression Snapshot */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[var(--color-text)] text-[var(--color-bg)] text-[12px] font-bold flex items-center justify-center">
+                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <span className="w-6 h-6 rounded-full bg-[var(--color-text)] text-[var(--color-bg)] text-[12px] font-bold flex items-center justify-center shrink-0">
                       ✓
                     </span>
-                    <div>
-                      <span className="text-[13px] font-bold text-[var(--color-text)] block">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[12.5px] sm:text-[13px] font-bold text-[var(--color-text)] block truncate sm:whitespace-normal">
                         Quiz 1: Nucleic Acids &amp; Transcription
                       </span>
-                      <span className="text-[11px] text-[var(--color-text-secondary)]">
+                      <span className="text-[11px] text-[var(--color-text-secondary)] block truncate sm:whitespace-normal">
                         5 questions · Score: 100% · Completed
                       </span>
                     </div>
                   </div>
-                  <span className="text-[12px] font-semibold text-[var(--color-text-secondary)]">
+                  <span className="text-[12px] font-semibold text-[var(--color-text-secondary)] shrink-0">
                     Passed
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)]">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full border-2 border-[var(--color-text)] text-[var(--color-text)] text-[12px] font-bold flex items-center justify-center">
+                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-strong)] gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <span className="w-6 h-6 rounded-full border-2 border-[var(--color-text)] text-[var(--color-text)] text-[12px] font-bold flex items-center justify-center shrink-0">
                       2
                     </span>
-                    <div>
-                      <span className="text-[13px] font-bold text-[var(--color-text)] block">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[12.5px] sm:text-[13px] font-bold text-[var(--color-text)] block truncate sm:whitespace-normal">
                         Quiz 2: Translation &amp; Codon Logic
                       </span>
-                      <span className="text-[11px] text-[var(--color-text-secondary)]">
+                      <span className="text-[11px] text-[var(--color-text-secondary)] block truncate sm:whitespace-normal">
                         5 questions · Ready for testing
                       </span>
                     </div>
                   </div>
-                  <span className="text-[12px] font-bold text-[var(--color-text)] underline">
+                  <span className="text-[12px] font-bold text-[var(--color-text)] underline shrink-0">
                     Next Up →
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)]/60 border border-[var(--color-border)] opacity-70">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full border border-[var(--color-border)] text-[var(--color-text-tertiary)] text-[12px] font-medium flex items-center justify-center">
+                <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)]/60 border border-[var(--color-border)] opacity-70 gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <span className="w-6 h-6 rounded-full border border-[var(--color-border)] text-[var(--color-text-tertiary)] text-[12px] font-medium flex items-center justify-center shrink-0">
                       3
                     </span>
-                    <div>
-                      <span className="text-[13px] font-medium text-[var(--color-text-secondary)] block">
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[12.5px] sm:text-[13px] font-medium text-[var(--color-text-secondary)] block truncate sm:whitespace-normal">
                         Comprehensive Exam: Full Simulation
                       </span>
-                      <span className="text-[11px] text-[var(--color-text-tertiary)]">
-                        35 questions · Final cumulative evaluation
+                      <span className="text-[11px] text-[var(--color-text-tertiary)] block truncate sm:whitespace-normal">
+                        35 questions · Cumulative evaluation
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-semibold text-[var(--color-text-tertiary)]">
+                  <span className="text-[11px] font-semibold text-[var(--color-text-tertiary)] shrink-0">
                     Locked
                   </span>
                 </div>
@@ -273,22 +273,22 @@ export default function WelcomeLanding() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto text-left">
-            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[20px] font-bold text-[var(--color-text)] block">Again</span>
-              <span className="text-[12px] text-[var(--color-text-secondary)]">Lapse: Re-queues immediately</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-3xl mx-auto text-left">
+            <div className="p-3 sm:p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="text-[18px] sm:text-[20px] font-bold text-[var(--color-text)] block">Again</span>
+              <span className="text-[11.5px] sm:text-[12px] text-[var(--color-text-secondary)]">Lapse: Re-queues immediately</span>
             </div>
-            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[20px] font-bold text-[var(--color-text)] block">Hard</span>
-              <span className="text-[12px] text-[var(--color-text-secondary)]">Short interval reinforcement</span>
+            <div className="p-3 sm:p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="text-[18px] sm:text-[20px] font-bold text-[var(--color-text)] block">Hard</span>
+              <span className="text-[11.5px] sm:text-[12px] text-[var(--color-text-secondary)]">Short interval reinforcement</span>
             </div>
-            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[20px] font-bold text-[var(--color-text)] block">Good</span>
-              <span className="text-[12px] text-[var(--color-text-secondary)]">Optimal retention spacing</span>
+            <div className="p-3 sm:p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="text-[18px] sm:text-[20px] font-bold text-[var(--color-text)] block">Good</span>
+              <span className="text-[11.5px] sm:text-[12px] text-[var(--color-text-secondary)]">Optimal retention spacing</span>
             </div>
-            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
-              <span className="text-[20px] font-bold text-[var(--color-text)] block">Easy</span>
-              <span className="text-[12px] text-[var(--color-text-secondary)]">Extended stability interval</span>
+            <div className="p-3 sm:p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)]">
+              <span className="text-[18px] sm:text-[20px] font-bold text-[var(--color-text)] block">Easy</span>
+              <span className="text-[11.5px] sm:text-[12px] text-[var(--color-text-secondary)]">Extended stability interval</span>
             </div>
           </div>
         </div>

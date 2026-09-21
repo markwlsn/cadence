@@ -55,7 +55,7 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-all gap-4"
       >
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-[var(--color-surface-overlay)] text-[var(--color-text)] border border-[var(--color-border)]">
               {item.tier === 'quiz' ? 'Short Quiz' : item.tier === 'long-quiz' ? 'Long Quiz' : 'Comprehensive'}
             </span>
@@ -84,12 +84,12 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
           </div>
         </div>
 
-        <div className="shrink-0 flex items-center gap-2">
-          <Link href={`/decks/${deckId}/review?assessment=${item.id}`}>
+        <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto">
+          <Link href={`/decks/${deckId}/review?assessment=${item.id}`} className="w-full sm:w-auto">
             <Button
               variant={isCompleted ? 'secondary' : 'primary'}
               size="sm"
-              className="text-[13px] whitespace-nowrap min-w-[110px]"
+              className="text-[13px] whitespace-nowrap w-full sm:w-auto min-w-[110px]"
             >
               {isCompleted ? 'Retake Quiz' : 'Start Quiz →'}
             </Button>

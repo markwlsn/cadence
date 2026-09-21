@@ -81,7 +81,7 @@ export default function DiagnosticReportClient({ deck, stats, cards }: Props) {
       </div>
 
       {/* ── Official Printable Diagnostic Document ── */}
-      <div className="p-8 sm:p-12 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] print:p-0 print:border-none print:shadow-none print:bg-white text-[var(--color-text)] space-y-8">
+      <div className="p-4 sm:p-8 md:p-12 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] print:p-0 print:border-none print:shadow-none print:bg-white text-[var(--color-text)] space-y-8 overflow-hidden">
         {/* Document Header */}
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 border-b border-[var(--color-border)]">
           <div className="space-y-1.5">
@@ -172,8 +172,8 @@ export default function DiagnosticReportClient({ deck, stats, cards }: Props) {
             </span>
           </h2>
 
-          <div className="border border-[var(--color-border)] rounded-[var(--radius-md)] overflow-hidden">
-            <table className="w-full text-left text-[13px]">
+          <div className="border border-[var(--color-border)] rounded-[var(--radius-md)] overflow-x-auto w-full max-w-full">
+            <table className="w-full text-left text-[13px] min-w-[500px]">
               <thead className="bg-[var(--color-surface-raised)] border-b border-[var(--color-border)] text-[11px] uppercase tracking-wider text-[var(--color-text-secondary)]">
                 <tr>
                   <th className="py-2.5 px-4 font-semibold">Assessment</th>

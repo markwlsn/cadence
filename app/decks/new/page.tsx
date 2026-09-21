@@ -98,7 +98,7 @@ export default function NewDeckPage() {
       <Navbar />
 
       {/* Main Form Content */}
-      <main className="flex-1 max-w-2xl mx-auto w-full p-6 sm:p-10 flex flex-col justify-center">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 sm:p-10 pb-28 md:pb-12 flex flex-col justify-center">
         {isProcessing ? (
           /* Processing State */
           <div className="flex flex-col items-center justify-center py-16 text-center animate-count-up">
