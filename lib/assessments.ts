@@ -103,7 +103,7 @@ export function cleanOptionDisplay(text: string, fallbackIdx = 0): string {
   const cleaned = text
     .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '') // strip dotted leaders, spaced dots, filler dashes
     .replace(/\[\d+\]|\(\d+\)/g, '') // strip [1] or (1) citations
-    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers e.g. "1.", "A."
+    .replace(/^(?:(?:\(|\[)?[a-zA-Z0-9]{1,2}[\.\)\:\-\]]\s*|[-*•\d.)]+\s*)/, '') // strip leading bullet/letter e.g. "A.", "1.", "(A)", "B)"
     .replace(/\s+\d+$/, '') // strip trailing page numbers
     .replace(/\s+/g, ' ')
     .trim();
@@ -126,6 +126,60 @@ export function cleanQuestionDisplay(text: string): string {
     .replace(/\s+\d+$/, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/**
+ * Normalizes an answer string for strict and flexible semantic comparison.
+ */
+export function normalizeForComparison(text: string): string {
+  if (!text) return '';
+  return text
+    // 1. Strip leading option identifiers like "A.", "A)", "(A)", "1.", "1)", "Option A:"
+    .replace(/^(?:\(?\s*[a-zA-Z0-9]{1,2}\s*[\.\)\:\-\]]\s*|option\s+[a-zA-Z0-9]\s*[\.\:\-]\s*)/i, '')
+    // 2. Strip dotted leaders (e.g. ".......", ".... . . .")
+    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, ' ')
+    // 3. Strip citations like [1], (1)
+    .replace(/\[\d+\]|\(\d+\)/g, '')
+    // 4. Strip trailing page numbers e.g. "  42"
+    .replace(/\s+\d+$/, '')
+    // 5. Strip surrounding quotes and punctuation
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/[.,;:!?]+$/, '')
+    // 6. Lowercase & collapse all whitespace
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Checks whether a candidate student choice or text answer matches the expected answer.
+ * Handles exact matches, stripped letter labels, trailing punctuation, and substring containment.
+ */
+export function isAnswerMatch(candidate: string, expected: string): boolean {
+  if (!candidate || !expected) return false;
+
+  const normCandidate = normalizeForComparison(candidate);
+  const normExpected = normalizeForComparison(expected);
+
+  if (!normCandidate || !normExpected) return false;
+
+  // Exact normalized match
+  if (normCandidate === normExpected) return true;
+
+  // Substring match if sufficiently distinctive (>= 4 characters)
+  if (normCandidate.length >= 4 && normExpected.length >= 4) {
+    if (normCandidate.includes(normExpected) || normExpected.includes(normCandidate)) {
+      return true;
+    }
+  }
+
+  // Article-stripped match (e.g. "the mitochondria" vs "mitochondria")
+  const stripArticles = (s: string) => s.replace(/^(?:the|a|an)\s+/i, '').trim();
+  if (stripArticles(normCandidate) === stripArticles(normExpected)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -308,38 +362,38 @@ export function getDeckAssessments(totalCards: number): DeckAssessment[] {
     {
       ...ASSESSMENT_CONFIGS[0],
       targetCount: Math.min(5, Math.max(1, Math.ceil(safeTotal * 0.15))),
-      estimatedMinutes: 5,
+      estimatedMinutes: 2,
     },
     {
       ...ASSESSMENT_CONFIGS[1],
       targetCount: Math.min(5, Math.max(1, Math.ceil(safeTotal * 0.15))),
-      estimatedMinutes: 5,
+      estimatedMinutes: 2,
     },
     {
       ...ASSESSMENT_CONFIGS[2],
       targetCount: Math.min(5, Math.max(1, Math.ceil(safeTotal * 0.15))),
-      estimatedMinutes: 5,
+      estimatedMinutes: 2,
     },
     {
       ...ASSESSMENT_CONFIGS[3],
       targetCount: Math.min(5, Math.max(1, Math.ceil(safeTotal * 0.15))),
-      estimatedMinutes: 5,
+      estimatedMinutes: 2,
     },
     {
       ...ASSESSMENT_CONFIGS[4],
       targetCount: Math.min(12, Math.max(2, Math.ceil(safeTotal * 0.4))),
-      estimatedMinutes: 12,
+      estimatedMinutes: 30,
     },
     {
       ...ASSESSMENT_CONFIGS[5],
       targetCount: Math.min(15, Math.max(2, Math.ceil(safeTotal * 0.5))),
-      estimatedMinutes: 15,
+      estimatedMinutes: 30,
     },
     {
       ...ASSESSMENT_CONFIGS[6],
       title: safeTotal >= 35 ? 'Comprehensive Exam (35 items)' : `Comprehensive Exam (${safeTotal} items)`,
       targetCount: Math.min(35, safeTotal),
-      estimatedMinutes: Math.min(35, Math.max(10, Math.round(safeTotal * 1.2))),
+      estimatedMinutes: 60,
     },
   ];
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Card as CardType, Rating, ReviewMode } from '@/types';
@@ -19,6 +19,7 @@ import {
   saveAssessmentProgress,
   ASSESSMENT_CONFIGS,
   cleanOptionDisplay,
+  isAnswerMatch,
 } from '@/lib/assessments';
 import { CardStack, ConfidenceRater, RatingButtons, ModeToggle, AIRationaleModal } from '@/components/review';
 import { Button, Badge, ThemeToggle } from '@/components/ui';
@@ -40,20 +41,34 @@ export default function ReviewSessionPage() {
     ? ASSESSMENT_CONFIGS.find((a) => a.id === assessmentId) || null
     : null;
 
-  const isExam = assessmentId === 'comprehensive_exam' || assessmentId === 'exam-35';
+  // Tier detection for assessments:
+  // Short Quiz: 15s per question
+  // Long Quiz: 30 mins total
+  // Comprehensive Exam: 60 mins total
+  const isShortQuiz = assessmentConfig?.tier === 'quiz' || (assessmentId !== null && assessmentId.startsWith('quiz-'));
+  const isLongQuiz = assessmentConfig?.tier === 'long-quiz' || (assessmentId !== null && assessmentId.startsWith('long-quiz-'));
+  const isExam = assessmentConfig?.tier === 'exam' || assessmentId === 'comprehensive_exam' || assessmentId === 'exam-35';
 
   const [deckTitle, setDeckTitle] = useState<string>('Deck');
   const [mode, setMode] = useState<ReviewMode>(initialMode);
   const [cards, setCards] = useState<CardType[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Score & Missed tracking with refs to prevent state batching/closure drops
   const [correctCount, setCorrectCount] = useState(0);
+  const correctCountRef = useRef(0);
   const [missedCardIds, setMissedCardIds] = useState<string[]>([]);
+  const missedCardIdsRef = useRef<string[]>([]);
   const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
 
-  // Session Stopwatch Timer
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  // Timers
+  const [elapsedSeconds, setElapsedSeconds] = useState(0); // overall session stopwatch
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(15); // 15s per question for Short Quiz
+  const [longQuizTimeLeft, setLongQuizTimeLeft] = useState(30 * 60); // 30 mins total for Long Quiz
+  const [examTimeLeft, setExamTimeLeft] = useState(60 * 60); // 60 mins total for Exam
   const [timerRunning, setTimerRunning] = useState(true);
+  const [isTimedOut, setIsTimedOut] = useState(false);
 
   // Review interaction state
   const [isFlipped, setIsFlipped] = useState(false);
@@ -70,6 +85,72 @@ export default function ReviewSessionPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, [timerRunning, isLoading, cards.length]);
+
+  // Short Quiz: 15-second per-question countdown
+  useEffect(() => {
+    if (!isShortQuiz || !timerRunning || isLoading || cards.length === 0 || currentIndex >= cards.length) {
+      return;
+    }
+
+    if (questionTimeLeft <= 0) {
+      setIsTimedOut(true);
+      if (!isFlipped) {
+        setIsFlipped(true);
+      }
+
+      const timeoutTimer = setTimeout(() => {
+        const currentCard = cards[currentIndex];
+        if (selectedMcqOption !== null && currentCard?.options) {
+          const chosen = currentCard.options[selectedMcqOption] || '';
+          const isCorrect = isAnswerMatch(chosen, currentCard.back);
+          handleRate(isCorrect ? 'good' : 'again', isCorrect);
+        } else {
+          // No option selected in 15 seconds -> mark as missed
+          handleRate('again', false);
+        }
+      }, 1200);
+
+      return () => clearTimeout(timeoutTimer);
+    }
+
+    const interval = setInterval(() => {
+      setQuestionTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isShortQuiz, timerRunning, isLoading, cards.length, currentIndex, questionTimeLeft, isFlipped, selectedMcqOption]);
+
+  // Long Quiz: 30-minute total countdown
+  useEffect(() => {
+    if (!isLongQuiz || !timerRunning || isLoading || cards.length === 0) return;
+
+    if (longQuizTimeLeft <= 0) {
+      finishSession(correctCountRef.current, missedCardIdsRef.current);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setLongQuizTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLongQuiz, timerRunning, isLoading, cards.length, longQuizTimeLeft]);
+
+  // Comprehensive Exam: 60-minute total countdown
+  useEffect(() => {
+    if (!isExam || !timerRunning || isLoading || cards.length === 0) return;
+
+    if (examTimeLeft <= 0) {
+      finishSession(correctCountRef.current, missedCardIdsRef.current);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setExamTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isExam, timerRunning, isLoading, cards.length, examTimeLeft]);
 
   const formatElapsed = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -136,11 +217,16 @@ export default function ReviewSessionPage() {
               setSessionId(sId);
               setCurrentIndex(0);
               setCorrectCount(0);
+              correctCountRef.current = 0;
               setMissedCardIds([]);
+              missedCardIdsRef.current = [];
               setFlaggedIds(new Set());
               setIsFlipped(false);
               setConfidenceBefore(undefined);
               setSelectedMcqOption(null);
+              setIsRationaleOpen(false);
+              setQuestionTimeLeft(15);
+              setIsTimedOut(false);
               setIsLoading(false);
             }
           })
@@ -185,22 +271,45 @@ export default function ReviewSessionPage() {
   // Select Confidence Before Answer
   const handleConfidenceSelect = (rating: 1 | 2 | 3 | 4 | 5) => {
     setConfidenceBefore(rating);
-    // Optional smooth hint: if card not flipped yet, user might want to flip next
+  };
+
+  // Complete session & route to summary
+  const finishSession = (finalCorrect: number, finalMissed: string[]) => {
+    if (assessmentId && drillMode !== 'mistakes') {
+      saveAssessmentProgress(deckId, assessmentId, finalCorrect, cards.length);
+    }
+    const missedQuery = finalMissed.length > 0 ? `&missed=${finalMissed.join(',')}` : '';
+    const assessmentQuery = assessmentId ? `&assessment=${assessmentId}` : '';
+    const timeToReport = isLongQuiz
+      ? Math.max(1, 1800 - longQuizTimeLeft)
+      : isExam
+      ? Math.max(1, 3600 - examTimeLeft)
+      : elapsedSeconds;
+
+    router.push(
+      `/decks/${deckId}/review/summary?sessionId=${sessionId}${assessmentQuery}&correct=${finalCorrect}&total=${cards.length}&time=${timeToReport}${missedQuery}`
+    );
   };
 
   // Submit Rating (Again, Hard, Good, Easy)
-  const handleRate = async (rating: Rating) => {
+  const handleRate = async (rating: Rating, overrideCorrect?: boolean) => {
     const currentCard = cards[currentIndex];
     if (!currentCard) return;
 
-    const isCorrect = rating === 'good' || rating === 'easy';
-    const updatedCorrect = isCorrect ? correctCount + 1 : correctCount;
-    setCorrectCount(updatedCorrect);
+    // A retrieval is correct if overrideCorrect is explicit, or rating is 'good', 'easy', or 'hard'
+    const isCorrect = overrideCorrect !== undefined
+      ? overrideCorrect
+      : (rating === 'good' || rating === 'easy' || rating === 'hard');
 
-    const updatedMissed = !isCorrect
-      ? Array.from(new Set([...missedCardIds, currentCard.id]))
-      : missedCardIds;
+    if (isCorrect) {
+      correctCountRef.current += 1;
+      setCorrectCount(correctCountRef.current);
+    }
+
+    let updatedMissed = missedCardIdsRef.current;
     if (!isCorrect) {
+      updatedMissed = Array.from(new Set([...missedCardIdsRef.current, currentCard.id]));
+      missedCardIdsRef.current = updatedMissed;
       setMissedCardIds(updatedMissed);
       recordMistake(currentCard, deckId, deckTitle);
     }
@@ -227,15 +336,7 @@ export default function ReviewSessionPage() {
 
     // Check if session complete
     if (currentIndex + 1 >= cards.length) {
-      // Finished all cards! Navigate to summary
-      if (assessmentId && drillMode !== 'mistakes') {
-        saveAssessmentProgress(deckId, assessmentId, updatedCorrect, cards.length);
-      }
-      const missedQuery = updatedMissed.length > 0 ? `&missed=${updatedMissed.join(',')}` : '';
-      const assessmentQuery = assessmentId ? `&assessment=${assessmentId}` : '';
-      router.push(
-        `/decks/${deckId}/review/summary?sessionId=${sessionId}${assessmentQuery}&correct=${updatedCorrect}&total=${cards.length}&time=${elapsedSeconds}${missedQuery}`
-      );
+      finishSession(correctCountRef.current, updatedMissed);
     } else {
       // Advance to next card
       setCurrentIndex((prev) => prev + 1);
@@ -243,6 +344,8 @@ export default function ReviewSessionPage() {
       setConfidenceBefore(undefined);
       setSelectedMcqOption(null);
       setIsRationaleOpen(false);
+      setQuestionTimeLeft(15);
+      setIsTimedOut(false);
     }
   };
 
@@ -335,21 +438,55 @@ export default function ReviewSessionPage() {
             <ModeToggle mode={mode} onChange={handleModeChange} />
           )}
 
-          {/* Session Stopwatch Timer + Question Flagging + Theme Toggle + Progress badge */}
+          {/* Session Timer / Countdown Pill + Question Flagging + Theme Toggle + Progress badge */}
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setTimerRunning((prev) => !prev)}
               className={`px-2 py-0.5 rounded text-[11px] sm:text-[12px] font-mono font-semibold border transition-all flex items-center gap-1 shrink-0 ${
-                timerRunning
-                  ? 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]'
-                  : 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                !timerRunning
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                  : isShortQuiz && questionTimeLeft <= 3
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-400 animate-pulse ring-1 ring-rose-500/40'
+                  : isShortQuiz && questionTimeLeft <= 5
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                  : isLongQuiz && longQuizTimeLeft <= 60
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-400 animate-pulse'
+                  : isLongQuiz && longQuizTimeLeft <= 300
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                  : isExam && examTimeLeft <= 180
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-400 animate-pulse'
+                  : isExam && examTimeLeft <= 600
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]'
               }`}
-              title={timerRunning ? 'Click to pause timer' : 'Click to resume timer'}
+              title={
+                !timerRunning
+                  ? 'Timer paused · Click to resume'
+                  : isShortQuiz
+                  ? `Short Quiz: ${questionTimeLeft}s left on this question (15s/item) · Click to pause`
+                  : isLongQuiz
+                  ? `Long Quiz: ${formatElapsed(longQuizTimeLeft)} remaining (30m total) · Click to pause`
+                  : isExam
+                  ? `Comprehensive Exam: ${formatElapsed(examTimeLeft)} remaining (60m total) · Click to pause`
+                  : 'Session Stopwatch · Click to pause'
+              }
             >
               <span>⏱️</span>
-              <span>{formatElapsed(elapsedSeconds)}</span>
-              {!timerRunning && <span className="text-[9px] uppercase font-bold tracking-wider hidden sm:inline">(Paused)</span>}
+              <span>
+                {isShortQuiz
+                  ? `${questionTimeLeft}s`
+                  : isLongQuiz
+                  ? formatElapsed(longQuizTimeLeft)
+                  : isExam
+                  ? formatElapsed(examTimeLeft)
+                  : formatElapsed(elapsedSeconds)}
+              </span>
+              {!timerRunning && (
+                <span className="text-[9px] uppercase font-bold tracking-wider hidden sm:inline">
+                  (Paused)
+                </span>
+              )}
             </button>
 
             {cards[currentIndex] && (
@@ -402,6 +539,8 @@ export default function ReviewSessionPage() {
                     setIsFlipped(false);
                     setSelectedMcqOption(null);
                     setIsRationaleOpen(false);
+                    setQuestionTimeLeft(15);
+                    setIsTimedOut(false);
                   }}
                   className={`w-6 h-6 rounded flex items-center justify-center shrink-0 font-medium transition-all ${
                     isCurrent
@@ -470,6 +609,13 @@ export default function ReviewSessionPage() {
                   <span>💡 Explain Rationale (AI)</span>
                 </button>
               </div>
+              {isTimedOut && (
+                <div className="text-center py-1">
+                  <span className="text-[12px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-3 py-1 rounded-full border border-rose-500/30">
+                    ⏱️ 15s Time Limit Reached · Moving to next question…
+                  </span>
+                </div>
+              )}
               {assessmentConfig && selectedMcqOption !== null ? (
                 <div className="space-y-2">
                   <Button
@@ -478,10 +624,8 @@ export default function ReviewSessionPage() {
                     onClick={() => {
                       const currentCard = cards[currentIndex];
                       const chosen = currentCard?.options?.[selectedMcqOption] || '';
-                      const isCorrect =
-                        cleanOptionDisplay(chosen).toLowerCase() ===
-                        cleanOptionDisplay(currentCard.back).toLowerCase();
-                      handleRate(isCorrect ? 'good' : 'again');
+                      const isCorrect = isAnswerMatch(chosen, currentCard.back);
+                      handleRate(isCorrect ? 'good' : 'again', isCorrect);
                     }}
                     className="w-full text-[14px] font-bold py-2.5 shadow-sm !bg-[var(--color-text)] !text-[var(--color-bg)]"
                   >

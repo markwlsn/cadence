@@ -58,16 +58,36 @@ export default function SessionSummaryPage() {
       } catch {
         data = {
           deckId,
-          cardsReviewed: paramTotal ? parseInt(paramTotal, 10) : 0,
-          accuracy: paramTotal && paramCorrect ? parseInt(paramCorrect, 10) / parseInt(paramTotal, 10) : 0,
+          cardsReviewed: 0,
+          accuracy: 0,
           streak: 1,
           dueNext: '',
           mode: 'mastery',
         };
       }
+
+      // Ground truth: Use in-session parameters passed from the review runner
+      const parsedTotal = paramTotal !== null && paramTotal !== undefined ? parseInt(paramTotal, 10) : null;
+      const parsedCorrect = paramCorrect !== null && paramCorrect !== undefined ? parseInt(paramCorrect, 10) : null;
+
+      const totalCount = parsedTotal !== null && !isNaN(parsedTotal)
+        ? parsedTotal
+        : (data.cardsReviewed || 0);
+
+      const correctCount = parsedCorrect !== null && !isNaN(parsedCorrect)
+        ? parsedCorrect
+        : Math.round((data.cardsReviewed || 0) * (data.accuracy || 0));
+
+      const effectiveAccuracy = totalCount > 0
+        ? correctCount / totalCount
+        : (data.accuracy || 0);
+
+      // Ensure data has the accurate ground truth stats
+      data.cardsReviewed = totalCount;
+      data.accuracy = effectiveAccuracy;
       setSummary(data);
 
-      const targetPercent = Math.round(data.accuracy * 100);
+      const targetPercent = Math.round(effectiveAccuracy * 100);
       let current = 0;
       const timer = setInterval(() => {
         current += 2;
@@ -98,12 +118,23 @@ export default function SessionSummaryPage() {
     );
   }
 
-  const accuracyPercent = Math.round(summary.accuracy * 100);
+  const parsedTotal = paramTotal !== null && paramTotal !== undefined ? parseInt(paramTotal, 10) : null;
+  const parsedCorrect = paramCorrect !== null && paramCorrect !== undefined ? parseInt(paramCorrect, 10) : null;
+
+  const totalCount = parsedTotal !== null && !isNaN(parsedTotal)
+    ? parsedTotal
+    : (summary.cardsReviewed || 0);
+
+  const correctCount = parsedCorrect !== null && !isNaN(parsedCorrect)
+    ? parsedCorrect
+    : Math.round((summary.cardsReviewed || 0) * (summary.accuracy || 0));
+
+  const effectiveAccuracy = totalCount > 0
+    ? correctCount / totalCount
+    : (summary.accuracy || 0);
+
+  const accuracyPercent = Math.round(effectiveAccuracy * 100);
   const isPassed = accuracyPercent >= 70;
-  const totalCount = paramTotal ? parseInt(paramTotal, 10) : summary.cardsReviewed;
-  const correctCount = paramCorrect
-    ? parseInt(paramCorrect, 10)
-    : Math.round(summary.cardsReviewed * summary.accuracy);
 
   return (
     <main className="min-h-dvh flex flex-col p-6 sm:p-12 max-w-xl mx-auto w-full gap-8 bg-[var(--color-bg)]">
@@ -152,7 +183,7 @@ export default function SessionSummaryPage() {
         </div>
 
         <p className="text-[14px] text-[var(--color-text-secondary)] max-w-sm leading-relaxed">
-          {getPerformanceMessage(summary.accuracy)}
+          {getPerformanceMessage(effectiveAccuracy)}
         </p>
       </section>
 

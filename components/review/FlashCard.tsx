@@ -4,6 +4,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Card as CardType } from '@/types';
 import { Badge, Button } from '@/components/ui';
 import { evaluateStudentAnswer } from '@/lib/utils/levenshtein';
+import { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch } from '@/lib/assessments';
+
+export { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch };
 
 interface FlashCardProps {
   card: CardType;
@@ -47,48 +50,6 @@ function normalizeText(str: string): string {
     .replace(/^["'`]|["'`]$/g, '')
     .replace(/[.,;:!?]+$/, '')
     .replace(/\s+/g, ' ');
-}
-
-const DOMAIN_FALLBACK_DISTRACTORS = [
-  'Disabled by default to minimize attack surface',
-  'Requires TPM 2.0 cryptographic attestation',
-  'Restricted to local administrative console',
-  'Bypasses perimeter packet inspection filters',
-  'Enforced via multi-factor conditional access',
-  'Requires systematic empirical verification',
-  'Pre-established regulatory or design standard',
-  'Isolates untrusted ingress perimeter traffic',
-];
-
-/** Clean up raw table-of-contents dots, citations, and numbers from option displays */
-export function cleanOptionDisplay(text: string, fallbackIdx = 0): string {
-  if (!text) {
-    return DOMAIN_FALLBACK_DISTRACTORS[Math.abs(fallbackIdx) % DOMAIN_FALLBACK_DISTRACTORS.length];
-  }
-  const cleaned = text
-    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '') // strip dotted leaders like .......
-    .replace(/\[\d+\]|\(\d+\)/g, '') // strip trailing [1] or (1) citations
-    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers
-    .replace(/\s+\d+$/, '') // strip trailing page numbers
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!cleaned || !/[a-zA-Z0-9]/.test(cleaned)) {
-    return DOMAIN_FALLBACK_DISTRACTORS[Math.abs(fallbackIdx) % DOMAIN_FALLBACK_DISTRACTORS.length];
-  }
-  return cleaned;
-}
-
-/** Clean up raw table-of-contents dots and citations from question stems */
-export function cleanQuestionDisplay(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '')
-    .replace(/\[\d+\]|\(\d+\)/g, '')
-    .replace(/(["'])\s*(?:\d+[\.\)]|[a-zA-Z][\.\)])\s*/g, '$1')
-    .replace(/\s+\d+$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 /** Check if student cloze input matches expected answer (including code spacing tolerance) */
@@ -263,7 +224,7 @@ export function FlashCard({
   const isMcqCorrect = useMemo(() => {
     if (selectedMcqOption === null || selectedMcqOption === undefined || !card.options) return null;
     const chosenText = card.options[selectedMcqOption];
-    return normalizeText(chosenText || '') === normalizeText(card.back || '');
+    return isAnswerMatch(chosenText || '', card.back || '');
   }, [selectedMcqOption, card.options, card.back]);
 
   return (
@@ -480,7 +441,7 @@ export function FlashCard({
                       const letter = String.fromCharCode(65 + idx);
                       const isSelected = selectedMcqOption === idx;
                       const isOptionCorrect =
-                        normalizeText(option) === normalizeText(card.back);
+                        isAnswerMatch(option, card.back);
 
                       let buttonStyle =
                         'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-overlay)]';
@@ -759,7 +720,7 @@ export function FlashCard({
                 </span>
                 {card.options.map((option, idx) => {
                   const isCorrectOption =
-                    normalizeText(option) === normalizeText(card.back);
+                    isAnswerMatch(option, card.back);
                   const isStudentChoice = selectedMcqOption === idx;
 
                   let badge = null;

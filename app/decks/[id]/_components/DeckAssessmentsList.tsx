@@ -74,7 +74,9 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
           <div className="flex items-center gap-3 text-[12px] text-[var(--color-text-tertiary)] pt-0.5">
             <span>📝 {item.targetCount} questions</span>
             <span>·</span>
-            <span>⏱️ ~{item.estimatedMinutes} mins</span>
+            <span>
+              ⏱️ {item.tier === 'quiz' ? '15s / question' : item.tier === 'long-quiz' ? '30 mins total' : '60 mins total'}
+            </span>
             {mounted && progress?.lastAttemptDate && (
               <>
                 <span>·</span>
