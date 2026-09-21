@@ -453,12 +453,12 @@ export async function generateCards(
 
   const timeoutPromise = new Promise<Card[][]>((resolve) => {
     setTimeout(() => {
-      console.warn('[generate-cards] AI execution deadline reached (7500ms). Falling back to instantaneous synthesis.');
+      console.warn('[generate-cards] AI execution deadline reached (9500ms). Falling back to instantaneous synthesis.');
       const fallbacks = aiChunks.map((c) =>
         generateFallbackCardsForChunk(c, deckId).map((p) => hydrateCard(p, deckId))
       );
       resolve(fallbacks);
-    }, 7500);
+    }, 9500);
   });
 
   const chunkResults = await Promise.race([aiPromise, timeoutPromise]);
