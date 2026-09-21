@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import type { Deck, DeckStats, Card } from '@/types';
 import { Button, Badge } from '@/components/ui';
-import { ensureMultipleChoice } from '@/lib/assessments';
+import { ensureMultipleChoice, cleanOptionDisplay, cleanQuestionDisplay } from '@/lib/assessments';
 import { getCurrentUser } from '@/lib/auth';
 import { getLocalCustomDecks, getLocalCustomCards } from '@/lib/data';
 
@@ -71,15 +71,13 @@ export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: P
         .replace(/^Which (of the following|statement)\s*/i, '')
         .replace(/^Why does\s*/i, '')
         .replace(/\?$/, '')
-        .trim();
-      if (term.length > 60) {
-        term = term.slice(0, 57) + '…';
-      }
+      const cleanedTerm = cleanQuestionDisplay(term);
+      const displayTerm = cleanedTerm.length > 60 ? cleanedTerm.slice(0, 57) + '…' : cleanedTerm;
       return {
         id: c.id,
         index: i + 1,
-        term,
-        keyAnswer: c.back,
+        term: displayTerm,
+        keyAnswer: cleanOptionDisplay(c.back, i),
         context: c.explanation || 'Fundamental core curriculum concept required for examination retention.',
       };
     });
@@ -484,14 +482,14 @@ export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: P
                           {i + 1}.
                         </span>
                         <span className="font-medium text-[var(--color-text)] print:text-black leading-snug">
-                          {card.front}
+                          {cleanQuestionDisplay(card.front)}
                         </span>
                       </div>
 
                       {/* Dashed vertical separator representing the paper fold line */}
                       <div className="col-span-5 border-l-2 border-dashed border-zinc-400 pl-3 space-y-0.5">
                         <div className="font-bold text-emerald-700 dark:text-emerald-400 print:text-black">
-                          {card.back}
+                          {cleanOptionDisplay(card.back, i)}
                         </div>
                         {card.explanation && (
                           <div className="text-[11px] text-[var(--color-text-secondary)] print:text-zinc-700 leading-tight">
@@ -537,7 +535,7 @@ export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: P
                         Q{qIdx + 1}
                       </span>
                       <h3 className="text-[13.5px] sm:text-[14px] font-bold text-[var(--color-text)] print:text-black leading-snug">
-                        {card.front}
+                        {cleanQuestionDisplay(card.front)}
                       </h3>
                     </div>
 
@@ -567,7 +565,7 @@ export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: P
                               {letter}
                             </span>
                             <div className="flex-1 leading-tight">
-                              <span>{option}</span>
+                              <span>{cleanOptionDisplay(option, optIdx)}</span>
                               {highlightAnswer && (
                                 <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 print:text-black mt-0.5">
                                   ✓ Correct Key
@@ -687,7 +685,7 @@ export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: P
                           </span>
                         </td>
                         <td className="py-1.5 px-3 font-semibold text-[var(--color-text)] print:text-black">
-                          {card.back}
+                          {cleanOptionDisplay(card.back, idx)}
                         </td>
                         <td className="py-1.5 px-3 text-[var(--color-text-secondary)] print:text-zinc-700 leading-snug">
                           {card.explanation ? card.explanation.slice(0, 100) + '…' : 'Core curriculum definition.'}

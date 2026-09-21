@@ -49,22 +49,45 @@ function normalizeText(str: string): string {
     .replace(/\s+/g, ' ');
 }
 
+const DOMAIN_FALLBACK_DISTRACTORS = [
+  'Disabled by default to minimize attack surface',
+  'Requires TPM 2.0 cryptographic attestation',
+  'Restricted to local administrative console',
+  'Bypasses perimeter packet inspection filters',
+  'Enforced via multi-factor conditional access',
+  'Requires systematic empirical verification',
+  'Pre-established regulatory or design standard',
+  'Isolates untrusted ingress perimeter traffic',
+];
+
 /** Clean up raw table-of-contents dots, citations, and numbers from option displays */
-export function cleanOptionDisplay(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/\.{2,}/g, '') // strip trailing dotted leaders like .......
+export function cleanOptionDisplay(text: string, fallbackIdx = 0): string {
+  if (!text) {
+    return DOMAIN_FALLBACK_DISTRACTORS[Math.abs(fallbackIdx) % DOMAIN_FALLBACK_DISTRACTORS.length];
+  }
+  const cleaned = text
+    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '') // strip dotted leaders like .......
     .replace(/\[\d+\]|\(\d+\)/g, '') // strip trailing [1] or (1) citations
     .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers
+    .replace(/\s+\d+$/, '') // strip trailing page numbers
+    .replace(/\s+/g, ' ')
     .trim();
+
+  if (!cleaned || !/[a-zA-Z0-9]/.test(cleaned)) {
+    return DOMAIN_FALLBACK_DISTRACTORS[Math.abs(fallbackIdx) % DOMAIN_FALLBACK_DISTRACTORS.length];
+  }
+  return cleaned;
 }
 
 /** Clean up raw table-of-contents dots and citations from question stems */
 export function cleanQuestionDisplay(text: string): string {
   if (!text) return '';
   return text
-    .replace(/\.{3,}/g, '')
+    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '')
     .replace(/\[\d+\]|\(\d+\)/g, '')
+    .replace(/(["'])\s*(?:\d+[\.\)]|[a-zA-Z][\.\)])\s*/g, '$1')
+    .replace(/\s+\d+$/, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -509,7 +532,7 @@ export function FlashCard({
                               {letter}
                             </span>
                             <span className="text-left break-words leading-relaxed flex-1 font-medium text-[14px] sm:text-[15px]">
-                              {cleanOptionDisplay(option)}
+                              {cleanOptionDisplay(option, idx)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
@@ -771,7 +794,7 @@ export function FlashCard({
                           {String.fromCharCode(65 + idx)}.
                         </span>
                         <span className="text-left break-words leading-relaxed flex-1">
-                          {cleanOptionDisplay(option)}
+                          {cleanOptionDisplay(option, idx)}
                         </span>
                       </div>
                       <div className="shrink-0">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma, ensureDbReady } from '@/lib/db';
 import { generateCards, generateFallbackCardsForChunk } from '@/lib/ai/generate-cards';
 import { mapToSharedCard } from '@/lib/fsrs';
+import { cleanOptionDisplay, cleanQuestionDisplay } from '@/lib/assessments';
 import type { Card } from '@/types';
 
 import crypto from 'crypto';
@@ -146,15 +147,21 @@ export async function POST(request: Request, context: RouteContext) {
 
     for (let cIdx = 0; cIdx < validCards.length; cIdx++) {
       const card = validCards[cIdx];
+      const cleanFront = cleanQuestionDisplay(card.front);
+      const cleanBack = cleanOptionDisplay(card.back);
+      const cleanOpts = Array.isArray(card.options)
+        ? card.options.map((opt, i) => cleanOptionDisplay(opt, i))
+        : null;
+
       try {
         const row = await prisma.card.create({
           data: {
             deckId,
             type: card.type || 'mcq',
-            front: card.front.trim(),
-            back: card.back.trim(),
+            front: cleanFront,
+            back: cleanBack,
             explanation: card.explanation?.trim() || null,
-            options: Array.isArray(card.options) ? JSON.stringify(card.options) : null,
+            options: cleanOpts ? JSON.stringify(cleanOpts) : null,
             due: now,
             stability: 0,
             difficulty: 5.0,
@@ -168,10 +175,10 @@ export async function POST(request: Request, context: RouteContext) {
           id: card.id || `card-${Date.now()}-${cIdx}`,
           deckId,
           type: (card.type as Card['type']) || 'mcq',
-          front: card.front.trim(),
-          back: card.back.trim(),
+          front: cleanFront,
+          back: cleanBack,
           explanation: card.explanation?.trim(),
-          options: card.options,
+          options: cleanOpts || undefined,
           due: now.toISOString(),
           stability: 0,
           difficulty: 5.0,

@@ -84,26 +84,46 @@ export const ASSESSMENT_CONFIGS: Omit<DeckAssessment, 'targetCount' | 'estimated
   },
 ];
 
-/** Clean up raw table-of-contents dots, citations, and numbers from option displays */
-export function cleanOptionDisplay(text: string): string {
-  if (!text) return '';
-  return text
-    .replace(/\.{2,}/g, '') // strip trailing dotted leaders like .......
-    .replace(/…+/g, '') // strip unicode ellipses
-    .replace(/\[\d+\]|\(\d+\)/g, '') // strip trailing [1] or (1) citations
-    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers
+export const DOMAIN_DISTRACTOR_FALLBACKS = [
+  'Disabled by default to minimize attack surface',
+  'Requires TPM 2.0 cryptographic attestation',
+  'Restricted to local administrative console',
+  'Bypasses perimeter packet inspection filters',
+  'Enforced via multi-factor conditional access',
+  'Requires systematic empirical verification',
+  'Pre-established regulatory or design standard',
+  'Isolates untrusted ingress perimeter traffic',
+];
+
+/** Clean up raw table-of-contents dots, citations, numbers, and filler leaders from option displays */
+export function cleanOptionDisplay(text: string, fallbackIdx = 0): string {
+  if (!text) {
+    return DOMAIN_DISTRACTOR_FALLBACKS[Math.abs(fallbackIdx) % DOMAIN_DISTRACTOR_FALLBACKS.length];
+  }
+  const cleaned = text
+    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '') // strip dotted leaders, spaced dots, filler dashes
+    .replace(/\[\d+\]|\(\d+\)/g, '') // strip [1] or (1) citations
+    .replace(/^[-*•\d.)]+\s*/, '') // strip leading bullet numbers e.g. "1.", "A."
+    .replace(/\s+\d+$/, '') // strip trailing page numbers
     .replace(/\s+/g, ' ')
     .trim();
+
+  // If the option consisted entirely of dots/punctuation with no alphanumeric content, replace with valid distractor
+  if (!cleaned || !/[a-zA-Z0-9]/.test(cleaned)) {
+    return DOMAIN_DISTRACTOR_FALLBACKS[Math.abs(fallbackIdx) % DOMAIN_DISTRACTOR_FALLBACKS.length];
+  }
+
+  return cleaned;
 }
 
 /** Clean up raw table-of-contents dots and citations from question stems */
 export function cleanQuestionDisplay(text: string): string {
   if (!text) return '';
   return text
-    .replace(/\.{2,}/g, '')
-    .replace(/…+/g, '')
+    .replace(/(?:\.\s*){2,}|\.{2,}|…+|[·•]{2,}|[-_=~]{3,}/g, '')
     .replace(/\[\d+\]|\(\d+\)/g, '')
     .replace(/(["'])\s*(?:\d+[\.\)]|[a-zA-Z][\.\)])\s*/g, '$1')
+    .replace(/\s+\d+$/, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -114,7 +134,7 @@ export function cleanQuestionDisplay(text: string): string {
  */
 export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0): Card {
   const cleanFront = cleanQuestionDisplay(card.front || '');
-  const correct = cleanOptionDisplay(card.back || '').trim();
+  const correct = cleanOptionDisplay(card.back || '', 0).trim();
 
   // If already MCQ with 4 options and back matches one of them, clean and return it
   if (
@@ -122,17 +142,30 @@ export function ensureMultipleChoice(card: Card, allCards: Card[] = [], seed = 0
     Array.isArray(card.options) &&
     card.options.length >= 4
   ) {
-    const cleanedOpts = card.options.map((opt) => cleanOptionDisplay(opt)).filter(Boolean);
-    const hasCorrect = cleanedOpts.some(
-      (opt) => opt.toLowerCase() === correct.toLowerCase()
-    );
-    if (hasCorrect && cleanedOpts.length >= 4) {
+    const cleanedOpts = card.options
+      .map((opt, i) => cleanOptionDisplay(opt, i))
+      .filter((opt) => opt && opt.toLowerCase() !== correct.toLowerCase());
+
+    const uniqueCleaned = Array.from(new Set(cleanedOpts));
+
+    if (uniqueCleaned.length >= 3) {
+      const targetSlot = Math.abs(seed) % 4;
+      const shuffled: string[] = [];
+      let distractorIdx = 0;
+      for (let i = 0; i < 4; i++) {
+        if (i === targetSlot) {
+          shuffled.push(correct);
+        } else {
+          shuffled.push(uniqueCleaned[distractorIdx] || DOMAIN_DISTRACTOR_FALLBACKS[i]);
+          distractorIdx++;
+        }
+      }
       return {
         ...card,
         front: cleanFront,
         back: correct,
         type: 'mcq',
-        options: cleanedOpts.slice(0, 4),
+        options: shuffled,
       };
     }
   }

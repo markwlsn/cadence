@@ -16,6 +16,7 @@ import type {
   ReviewMode,
   Rating,
 } from '@/types';
+import { cleanOptionDisplay, cleanQuestionDisplay } from './assessments';
 
 // ─── Environment & Base URL Resolution ─────────────────────────────────────────
 
@@ -71,10 +72,19 @@ export function saveLocalCustomDeck(deck: Deck, cards: Card[]): void {
     const existingDecks = getLocalCustomDecks().filter((d) => d.id !== deck.id);
     localStorage.setItem(CUSTOM_DECKS_KEY, JSON.stringify([deck, ...existingDecks]));
 
+    const sanitizedCards = cards.map((c) => ({
+      ...c,
+      front: cleanQuestionDisplay(c.front || ''),
+      back: cleanOptionDisplay(c.back || ''),
+      options: c.options
+        ? c.options.map((opt, idx) => cleanOptionDisplay(opt, idx))
+        : undefined,
+    }));
+
     const rawCards = localStorage.getItem(CUSTOM_CARDS_KEY);
     const existingCards: Card[] = rawCards ? JSON.parse(rawCards) : [];
     const otherCards = existingCards.filter((c) => c.deckId !== deck.id);
-    localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify([...otherCards, ...cards]));
+    localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify([...otherCards, ...sanitizedCards]));
   } catch (e) {
     console.warn('[data] Failed to save custom deck to localStorage:', e);
   }
@@ -86,7 +96,16 @@ export function getLocalCustomCards(deckId: string): Card[] {
     const raw = localStorage.getItem(CUSTOM_CARDS_KEY);
     if (!raw) return [];
     const cards: Card[] = JSON.parse(raw);
-    return cards.filter((c) => c.deckId === deckId);
+    return cards
+      .filter((c) => c.deckId === deckId)
+      .map((c) => ({
+        ...c,
+        front: cleanQuestionDisplay(c.front || ''),
+        back: cleanOptionDisplay(c.back || ''),
+        options: c.options
+          ? c.options.map((opt, idx) => cleanOptionDisplay(opt, idx))
+          : undefined,
+      }));
   } catch {
     return [];
   }

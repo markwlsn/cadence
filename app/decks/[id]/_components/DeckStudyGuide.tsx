@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { Card } from '@/types';
 import { Button } from '@/components/ui';
+import { cleanOptionDisplay, cleanQuestionDisplay } from '@/lib/assessments';
 
 interface Props {
   deckTitle: string;
@@ -141,7 +142,7 @@ export default function DeckStudyGuide({ deckTitle, cards, deckId }: Props) {
                 className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] space-y-2 break-inside-avoid print:bg-white print:border-zinc-300"
               >
                 <span className="text-[14px] font-bold text-[var(--color-text)] block">
-                  {idx + 1}. {card.front}
+                  {idx + 1}. {cleanQuestionDisplay(card.front)}
                 </span>
 
                 {card.options && card.options.length > 0 && (
@@ -160,7 +161,7 @@ export default function DeckStudyGuide({ deckTitle, cards, deckId }: Props) {
                           <span className="w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center border border-current shrink-0">
                             {String.fromCharCode(65 + oIdx)}
                           </span>
-                          <span className="truncate">{opt}</span>
+                          <span className="truncate">{cleanOptionDisplay(opt, oIdx)}</span>
                           {isAnswer && <span className="ml-auto text-[11px] font-bold text-[var(--color-success)]">✓ Correct</span>}
                         </div>
                       );

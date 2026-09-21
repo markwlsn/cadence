@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import type { Card } from '@/types';
 import type { ExplainResponse } from '@/app/api/review/explain/route';
 import { Button, Badge } from '@/components/ui';
+import { cleanOptionDisplay } from '@/lib/assessments';
 
 interface Props {
   card: Card;
@@ -170,7 +171,7 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
                                 ✗
                               </span>
                               <span className="font-semibold text-[13px] text-[var(--color-text)] truncate">
-                                {distractor.option}
+                                {cleanOptionDisplay(distractor.option)}
                               </span>
                             </div>
                             {isChosen && (
