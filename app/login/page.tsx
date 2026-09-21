@@ -118,7 +118,7 @@ export default function LoginPage() {
           <ThemeToggle />
         </header>
 
-        <div className="flex-1 flex flex-col justify-center px-8 py-10 max-w-md mx-auto w-full">
+        <div className="flex-1 flex flex-col justify-center px-5 sm:px-8 py-8 sm:py-10 max-w-md mx-auto w-full">
           {/* Mobile logo */}
           <div className="flex items-center gap-2.5 mb-10 lg:hidden">
             <CadenceLogo size={32} showText />

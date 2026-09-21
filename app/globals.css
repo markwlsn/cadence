@@ -153,14 +153,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   touch-action: manipulation;
 }
 
 body {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
   position: relative;
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -171,7 +171,6 @@ body {
 }
 
 img,
-svg,
 video,
 canvas,
 audio,

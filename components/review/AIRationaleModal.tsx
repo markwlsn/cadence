@@ -79,7 +79,7 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl p-6 sm:p-7 space-y-5 text-[var(--color-text)] animate-scale-up"
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl p-4 sm:p-7 space-y-5 text-[var(--color-text)] animate-scale-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

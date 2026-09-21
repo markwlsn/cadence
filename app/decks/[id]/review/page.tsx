@@ -273,12 +273,12 @@ export default function ReviewSessionPage() {
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)] select-none">
       {/* Review Header */}
       <header className="sticky top-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-md">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+        <div className="max-w-2xl mx-auto px-2.5 sm:px-4 h-14 flex items-center justify-between gap-1.5 sm:gap-2">
           {/* Back button + Deck Title */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Link
               href={`/decks/${deckId}`}
-              className="inline-flex items-center gap-1 text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-[13px] sm:text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors shrink-0"
               aria-label="Back to deck overview"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -293,19 +293,19 @@ export default function ReviewSessionPage() {
 
           {/* Mode Switcher, Remediation Badge, or Assessment Info + Timer */}
           {drillMode === 'mistakes' ? (
-            <Badge variant="accent" size="sm" className="font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              🎯 Remediation Mode
+            <Badge variant="accent" size="sm" className="font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px]">
+              🎯 Remediation
             </Badge>
           ) : assessmentConfig ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="accent" size="sm" className="font-semibold">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <Badge variant="accent" size="sm" className="font-semibold max-w-[105px] sm:max-w-none truncate text-[11px]">
                 {assessmentConfig.title}
               </Badge>
               {isExam && (
                 <button
                   type="button"
                   onClick={() => setTimerActive(!timerActive)}
-                  className="px-2 py-0.5 rounded text-[12px] font-mono font-bold bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors"
+                  className="px-2 py-0.5 rounded text-[11px] sm:text-[12px] font-mono font-bold bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors shrink-0"
                   title="Click to pause or resume countdown"
                 >
                   ⏱️ {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}

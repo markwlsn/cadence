@@ -119,7 +119,7 @@ export default function RegisterPage() {
         <ThemeToggle />
       </header>
 
-      <div className="flex-1 flex flex-col justify-center px-6 py-10">
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 py-8 sm:py-10 pb-16">
         <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-10">

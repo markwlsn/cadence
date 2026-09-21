@@ -226,7 +226,7 @@ export function FlashCard({
 
   return (
     <div
-      className="card-flip-container w-full min-h-[420px] sm:min-h-[470px] h-[450px] sm:h-[490px] cursor-pointer select-none"
+      className="card-flip-container w-full min-h-[350px] sm:min-h-[470px] h-[390px] sm:h-[490px] cursor-pointer select-none"
       onClick={() => {
         if (!isFlipped) onFlip();
       }}

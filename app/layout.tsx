@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body
-        className="min-h-full flex flex-col transition-colors duration-200 overflow-x-hidden w-full max-w-full"
+        className="min-h-full flex flex-col transition-colors duration-200 w-full max-w-full"
         style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
       >
         <Script

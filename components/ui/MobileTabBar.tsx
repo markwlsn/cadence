@@ -21,8 +21,8 @@ export function MobileTabBar() {
     };
   }, []);
 
-  // Hide tab bar on active review sessions for maximum full-screen focus
-  if (pathname.includes('/review')) {
+  // Hide tab bar on active review sessions and auth pages to maximize focus and prevent keyboard overlap
+  if (pathname.includes('/review') || pathname === '/login' || pathname === '/register') {
     return null;
   }
 

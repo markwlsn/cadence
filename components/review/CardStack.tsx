@@ -76,7 +76,7 @@ export function CardStack({
   const swipeOpacity = Math.max(0.6, 1 - Math.abs(dragOffset.x) / 400);
 
   return (
-    <div className="relative w-full max-w-xl mx-auto min-h-[440px] sm:min-h-[490px] h-[450px] sm:h-[490px] flex items-center justify-center">
+    <div className="relative w-full max-w-xl mx-auto min-h-[350px] sm:min-h-[490px] h-[390px] sm:h-[490px] flex items-center justify-center">
       {/* Background card peek to convey stack depth */}
       {nextCard && (
         <div
