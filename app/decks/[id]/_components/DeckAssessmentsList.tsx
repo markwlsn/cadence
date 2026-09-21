@@ -106,10 +106,10 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-[17px] font-bold text-[var(--color-text)] tracking-tight">
-              Linear Study Curriculum
+              Step-by-Step Quiz Path
             </h3>
             <p className="text-[13px] text-[var(--color-text-secondary)]">
-              Progress through foundational quizzes to build concept mastery before the 35-item comprehensive exam.
+              Progress through the short quizzes to build confidence before taking the final comprehensive exam.
             </p>
           </div>
           <div className="text-left sm:text-right">
@@ -117,7 +117,7 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
               {completedCount} of {assessments.length} Completed
             </span>
             <span className="block text-[11px] text-[var(--color-text-secondary)]">
-              {progressPercent}% curriculum mastery
+              {progressPercent}% completed
             </span>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
 
         <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-[var(--color-border)] text-[12px]">
           <span className="text-[var(--color-text-secondary)]">
-            Every quiz and exam is standardized on 100% Multiple Choice questions.
+            All quizzes and exams feature 100% Multiple Choice questions.
           </span>
           <Link
             href={`/decks/${deckId}/reviewer`}
@@ -147,10 +147,10 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            1. Foundational Quizzes (4 Short Quizzes)
+            1. Short Quizzes (Quizzes 1–4)
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (MCQ Concepts &amp; Mechanisms)
+            (Core Concepts &amp; Key Rules)
           </span>
         </div>
         <div className="space-y-2">
@@ -162,10 +162,10 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            2. Comprehensive Long Quizzes (2 Long Quizzes)
+            2. Long Quizzes (Quizzes 5–6)
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (MCQ Multi-Concept Synthesis)
+            (Mid-Unit Topic Review)
           </span>
         </div>
         <div className="space-y-2">
@@ -177,10 +177,10 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            3. Comprehensive Examination (1 Final Exam)
+            3. Comprehensive Final Exam
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (Full 35-Item Simulation)
+            (Full Practice Exam)
           </span>
         </div>
         <div className="space-y-2">

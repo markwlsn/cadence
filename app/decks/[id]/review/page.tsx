@@ -18,6 +18,7 @@ import {
   getAssessmentCards,
   saveAssessmentProgress,
   ASSESSMENT_CONFIGS,
+  cleanOptionDisplay,
 } from '@/lib/assessments';
 import { CardStack, ConfidenceRater, RatingButtons, ModeToggle, AIRationaleModal } from '@/components/review';
 import { Button, Badge, ThemeToggle } from '@/components/ui';
@@ -466,7 +467,9 @@ export default function ReviewSessionPage() {
                     onClick={() => {
                       const currentCard = cards[currentIndex];
                       const chosen = currentCard?.options?.[selectedMcqOption] || '';
-                      const isCorrect = chosen.trim().toLowerCase() === currentCard.back.trim().toLowerCase();
+                      const isCorrect =
+                        cleanOptionDisplay(chosen).toLowerCase() ===
+                        cleanOptionDisplay(currentCard.back).toLowerCase();
                       handleRate(isCorrect ? 'good' : 'again');
                     }}
                     className="w-full text-[14px] font-bold py-2.5 shadow-sm !bg-[var(--color-text)] !text-[var(--color-bg)]"

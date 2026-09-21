@@ -123,6 +123,7 @@ export default function DiagnosticReportClient({ deck, stats, cards }: Props) {
                 size={88}
                 strokeWidth={8}
                 color="var(--color-text)"
+                showPercent={false}
               />
               <span className="absolute text-[20px] font-bold text-[var(--color-text)]">
                 {report.overallReadiness}%
@@ -131,7 +132,7 @@ export default function DiagnosticReportClient({ deck, stats, cards }: Props) {
 
             <div className="space-y-1">
               <div className="text-[11px] uppercase tracking-wider font-bold text-[var(--color-text-secondary)]">
-                Overall Projected Readiness
+                Study Readiness &amp; Progress
               </div>
               <div className="text-[20px] font-bold text-[var(--color-text)]">
                 {report.readinessLabel}
@@ -144,21 +145,21 @@ export default function DiagnosticReportClient({ deck, stats, cards }: Props) {
 
           <div className="grid grid-cols-3 gap-4 sm:border-l sm:border-[var(--color-border)] sm:pl-6 shrink-0 text-center">
             <div>
-              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Curriculum</div>
+              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Quizzes</div>
               <div className="text-[16px] font-bold text-[var(--color-text)]">{report.curriculumCompletionPercent}%</div>
-              <div className="text-[10px] text-[var(--color-text-tertiary)]">40% weight</div>
+              <div className="text-[10px] text-[var(--color-text-tertiary)]">Completed</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Test Avg.</div>
+              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Quiz Avg.</div>
               <div className="text-[16px] font-bold text-[var(--color-text)]">
                 {report.averageAssessmentScore > 0 ? `${report.averageAssessmentScore}%` : '—'}
               </div>
-              <div className="text-[10px] text-[var(--color-text-tertiary)]">35% weight</div>
+              <div className="text-[10px] text-[var(--color-text-tertiary)]">Accuracy</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Retention</div>
+              <div className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">Cards</div>
               <div className="text-[16px] font-bold text-[var(--color-text)]">{report.retentionStabilityPercent}%</div>
-              <div className="text-[10px] text-[var(--color-text-tertiary)]">25% weight</div>
+              <div className="text-[10px] text-[var(--color-text-tertiary)]">Mastered</div>
             </div>
           </div>
         </div>

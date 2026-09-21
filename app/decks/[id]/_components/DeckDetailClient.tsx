@@ -102,7 +102,7 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
         </div>
       </section>
 
-      {/* ── 2. Diagnostic Exam Readiness Score Card ────────────────────── */}
+      {/* ── 2. Study Progress & Readiness Score Card ────────────────────── */}
       <section className="p-4 sm:p-6 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-5 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
@@ -111,27 +111,32 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
                 percent={mounted && readiness ? readiness.score : masteryPercent}
                 size={80}
                 strokeWidth={7}
-                color="var(--color-text)"
+                color={
+                  mounted && readiness && readiness.score >= 75
+                    ? 'var(--color-success)'
+                    : 'var(--color-text)'
+                }
+                showPercent={false}
               />
-              <span className="absolute text-[16px] font-bold text-[var(--color-text)]">
+              <span className="absolute text-[18px] font-extrabold tracking-tight text-[var(--color-text)]">
                 {mounted && readiness ? readiness.score : masteryPercent}%
               </span>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                  Diagnostic Evaluation
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                  Study Progress
                 </span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)]">
-                  Academic Model
+                  Quiz Roadmap
                 </span>
               </div>
-              <h2 className="text-[20px] font-bold text-[var(--color-text)]">
-                {mounted && readiness ? readiness.label : 'Evaluating Readiness…'}
+              <h2 className="text-[19px] sm:text-[21px] font-bold text-[var(--color-text)] tracking-tight">
+                {mounted && readiness ? readiness.label : 'Loading Progress…'}
               </h2>
               <p className="text-[13px] text-[var(--color-text-secondary)] max-w-lg leading-relaxed">
-                Calculated from curriculum progression, historic test scores, and FSRS retrieval stability.
+                Complete the short quizzes and review your flashcards to master this deck before your exam.
               </p>
             </div>
           </div>
@@ -139,26 +144,49 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
           <div className="grid grid-cols-3 gap-3 sm:border-l sm:border-[var(--color-border)] sm:pl-6 shrink-0">
             <div className="text-center">
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
-                Linear Tests
+                Quizzes
               </span>
-              <span className="text-[16px] font-bold text-[var(--color-text)]">
-                {mounted && readiness ? `${readiness.breakdown.curriculumProgress}%` : '—'}
+              <span className="text-[16px] font-bold text-[var(--color-text)] block">
+                {mounted && readiness
+                  ? `${readiness.breakdown.completedCount ?? Math.round((readiness.breakdown.curriculumProgress / 100) * 7)} of 7`
+                  : '0 of 7'}
               </span>
-            </div>
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
-                Avg. Score
-              </span>
-              <span className="text-[16px] font-bold text-[var(--color-text)]">
-                {mounted && readiness && readiness.breakdown.averageScore > 0 ? `${readiness.breakdown.averageScore}%` : '—'}
+              <span className="text-[11px] text-[var(--color-text-secondary)] block">
+                {mounted && readiness ? `${readiness.breakdown.curriculumProgress}% done` : '0%'}
               </span>
             </div>
             <div className="text-center">
               <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
-                Retention
+                Quiz Score
               </span>
-              <span className="text-[16px] font-bold text-[var(--color-success)]">
-                {mounted && readiness ? `${readiness.breakdown.retentionStability}%` : `${masteryPercent}%`}
+              <span className="text-[16px] font-bold text-[var(--color-text)] block">
+                {mounted && readiness && readiness.breakdown.averageScore > 0
+                  ? `${readiness.breakdown.averageScore}%`
+                  : '—'}
+              </span>
+              <span className="text-[11px] text-[var(--color-text-secondary)] block">
+                {mounted && readiness && readiness.breakdown.averageScore > 0
+                  ? readiness.breakdown.averageScore >= 75
+                    ? 'Passing'
+                    : 'Needs review'
+                  : 'Not taken'}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)] block">
+                Cards Mastered
+              </span>
+              <span
+                className={`text-[16px] font-bold block ${
+                  stats.masteredCount > 0
+                    ? 'text-[var(--color-success)]'
+                    : 'text-[var(--color-text)]'
+                }`}
+              >
+                {stats.masteredCount} of {cardList.length > 0 ? cardList.length : stats.totalCards}
+              </span>
+              <span className="text-[11px] text-[var(--color-text-secondary)] block">
+                {masteryPercent}% mastered
               </span>
             </div>
           </div>
@@ -166,7 +194,7 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
         <div className="pt-3 border-t border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]">
           <span className="text-[var(--color-text-secondary)]">
-            Need an official evaluation or offline study guide?
+            Study offline or review detailed results:
           </span>
           <div className="flex items-center gap-4">
             <Link
@@ -180,22 +208,22 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
               href={`/decks/${deck.id}/diagnostic`}
               className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
             >
-              <span>Diagnostic Report</span>
+              <span>Progress Report</span>
               <span aria-hidden="true">&rarr;</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── 3. Apple Segmented Control Tab Switcher ────────────────────── */}
+      {/* ── 3. Segmented Control Tab Switcher ────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
         <div className="w-full sm:w-auto">
           <SegmentedControl
             name="deck-view-mode"
             size="md"
             options={[
-              { value: 'curriculum', label: 'Curriculum Roadmap' },
-              { value: 'guide', label: 'Key Principles' },
+              { value: 'curriculum', label: 'Quizzes & Exam' },
+              { value: 'guide', label: 'Study Guide' },
             ]}
             value={activeTab}
             onChange={(val) => setActiveTab(val as 'curriculum' | 'guide')}
@@ -204,8 +232,8 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
         <span className="text-[13px] text-[var(--color-text-secondary)] font-medium">
           {activeTab === 'curriculum'
-            ? 'Structured sequence: 4 Short Quizzes, 2 Long Quizzes, 1 Comprehensive Exam'
-            : 'Pre-quiz synthesis: searchable key definitions and core mechanisms'}
+            ? 'Structured path: 4 Short Quizzes, 2 Long Quizzes, 1 Comprehensive Exam'
+            : 'Searchable summary of key terms, definitions, and concepts'}
         </span>
       </div>
 

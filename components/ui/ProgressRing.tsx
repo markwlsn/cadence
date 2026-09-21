@@ -19,7 +19,7 @@ export function ProgressRing({
   color = 'var(--color-text)',
   trackColor = 'var(--color-border)',
   label,
-  showPercent = true,
+  showPercent = false,
   className = '',
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
