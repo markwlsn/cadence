@@ -341,7 +341,7 @@ function hydrateCard(payload: CardPayload, deckId: string): Card {
  * Synthesizes structured 4-choice retrieval practice cards directly from a text chunk
  * if the AI provider is unconfigured or encounters a temporary API outage.
  */
-function generateFallbackCardsForChunk(chunk: string, deckId: string): CardPayload[] {
+export function generateFallbackCardsForChunk(chunk: string, deckId: string): CardPayload[] {
   const sentences = chunk
     .split(/(?<=[.?!])\s+/)
     .map((s) => s.trim())
@@ -406,7 +406,7 @@ function generateFallbackCardsForChunk(chunk: string, deckId: string): CardPaylo
 
 /**
  * Generate retrieval-practice flashcards from pre-chunked text.
- * Resilient against AI outages or missing env keys to ensure flashcards always load.
+ * Concurrent and timeout-budgeted to prevent Vercel 10s Serverless Function timeouts.
  *
  * @param chunks - Array of concept-sized text chunks from parseContent().
  * @param deckId - The deck these cards belong to (written into each Card).
@@ -419,35 +419,58 @@ export async function generateCards(
   const allCards: Card[] = [];
   const aiReady = isAIConfigured();
 
-  if (!aiReady) {
-    console.warn('[generate-cards] No AI provider configured. Generating resilient structured cards directly from notes text.');
-    for (let i = 0; i < chunks.length; i++) {
-      const payloads = generateFallbackCardsForChunk(chunks[i], deckId);
+  if (!aiReady || chunks.length === 0) {
+    console.warn('[generate-cards] No AI provider configured or empty chunks. Generating resilient structured cards directly from notes text.');
+    const safeChunks = chunks.length > 0 ? chunks : ['Curriculum Overview: Foundational Principles and Exam Preparation'];
+    for (let i = 0; i < safeChunks.length; i++) {
+      const payloads = generateFallbackCardsForChunk(safeChunks[i], deckId);
       const cards = payloads.map((p) => hydrateCard(p, deckId));
       allCards.push(...cards);
     }
     return allCards;
   }
 
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    if (i > 0) {
-      // Gentle 1s pacing between chunks to prevent burst-firing requests on free tier
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    console.log(`[generate-cards] Processing chunk ${i + 1}/${chunks.length} (${chunk.split(/\s+/).filter(Boolean).length} words)...`);
+  // To prevent Vercel Serverless Function 10-second invocation timeouts:
+  // 1. Process top 2 chunks concurrently via Gemini 3.5 Flash (~2.5s total)
+  // 2. Set an overall AI budget of 7500ms using Promise.race
+  // 3. For any remaining chunks (or on timeout), use instantaneous fallback generation
+  const aiChunks = chunks.slice(0, 2);
+  const remainingChunks = chunks.slice(2);
 
-    try {
-      const payloads = await generateCardsForChunk(chunk);
-      const cards = payloads.map((p) => hydrateCard(p, deckId));
-      allCards.push(...cards);
-      console.log(`[generate-cards] Chunk ${i + 1}: generated ${cards.length} card(s).`);
-    } catch (err) {
-      console.warn(`[generate-cards] Chunk ${i + 1} encountered an AI issue, using resilient extraction fallback:`, err);
-      const fallbackPayloads = generateFallbackCardsForChunk(chunk, deckId);
-      const fallbackCards = fallbackPayloads.map((p) => hydrateCard(p, deckId));
-      allCards.push(...fallbackCards);
-    }
+  const aiPromise = Promise.all(
+    aiChunks.map(async (chunk, idx) => {
+      try {
+        console.log(`[generate-cards] Processing chunk ${idx + 1}/${chunks.length} via AI...`);
+        const payloads = await generateCardsForChunk(chunk);
+        return payloads.map((p) => hydrateCard(p, deckId));
+      } catch (err) {
+        console.warn(`[generate-cards] AI chunk ${idx + 1} issue, using resilient synthesis:`, err);
+        const fallback = generateFallbackCardsForChunk(chunk, deckId);
+        return fallback.map((p) => hydrateCard(p, deckId));
+      }
+    })
+  );
+
+  const timeoutPromise = new Promise<Card[][]>((resolve) => {
+    setTimeout(() => {
+      console.warn('[generate-cards] AI execution deadline reached (7500ms). Falling back to instantaneous synthesis.');
+      const fallbacks = aiChunks.map((c) =>
+        generateFallbackCardsForChunk(c, deckId).map((p) => hydrateCard(p, deckId))
+      );
+      resolve(fallbacks);
+    }, 7500);
+  });
+
+  const chunkResults = await Promise.race([aiPromise, timeoutPromise]);
+  for (const cardGroup of chunkResults) {
+    allCards.push(...cardGroup);
+  }
+
+  // Fast synthesis for chunks beyond top 2 to ensure comprehensive deck coverage without API lag
+  for (let i = 0; i < remainingChunks.length; i++) {
+    const fallbackPayloads = generateFallbackCardsForChunk(remainingChunks[i], deckId);
+    const fallbackCards = fallbackPayloads.map((p) => hydrateCard(p, deckId));
+    allCards.push(...fallbackCards);
   }
 
   return allCards;
