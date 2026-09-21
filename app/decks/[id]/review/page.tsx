@@ -11,6 +11,8 @@ import {
   createSession,
   submitReview,
   recordSessionLog,
+  getLocalCustomDecks,
+  getLocalCustomCards,
 } from '@/lib/data';
 import {
   getAssessmentCards,
@@ -95,30 +97,50 @@ export default function ReviewSessionPage() {
         fetchQueue = getQueue(deckId, mode);
       }
 
-      Promise.all([
-        getDeck(deckId),
-        fetchQueue,
-        createSession(deckId, mode),
-      ])
-        .then(([deck, queue, sId]) => {
-          if (!ignore) {
-            if (deck) setDeckTitle(deck.title);
-            setCards(queue);
-            setSessionId(sId);
-            setCurrentIndex(0);
-            setCorrectCount(0);
-            setMissedCardIds([]);
-            setFlaggedIds(new Set());
-            setIsFlipped(false);
-            setConfidenceBefore(undefined);
-            setSelectedMcqOption(null);
-            setIsLoading(false);
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          if (!ignore) setIsLoading(false);
-        });
+        Promise.all([
+          getDeck(deckId).catch(() => null),
+          fetchQueue.catch(() => []),
+          createSession(deckId, mode),
+        ])
+          .then(async ([deck, queue, sId]) => {
+            if (!ignore) {
+              let finalCards = queue;
+              if (!finalCards || finalCards.length === 0) {
+                const localCards = getLocalCustomCards(deckId);
+                if (localCards.length > 0) {
+                  finalCards = assessmentId
+                    ? getAssessmentCards(localCards, assessmentId)
+                    : localCards;
+                } else {
+                  const allDeckCards = await getDeckCards(deckId).catch(() => []);
+                  if (allDeckCards.length > 0) {
+                    finalCards = assessmentId
+                      ? getAssessmentCards(allDeckCards, assessmentId)
+                      : allDeckCards;
+                  }
+                }
+              }
+
+              const customDeck = getLocalCustomDecks().find((d) => d.id === deckId);
+              const effectiveTitle = deck?.title || customDeck?.title || 'Study Deck';
+
+              setDeckTitle(effectiveTitle);
+              setCards(finalCards || []);
+              setSessionId(sId);
+              setCurrentIndex(0);
+              setCorrectCount(0);
+              setMissedCardIds([]);
+              setFlaggedIds(new Set());
+              setIsFlipped(false);
+              setConfidenceBefore(undefined);
+              setSelectedMcqOption(null);
+              setIsLoading(false);
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            if (!ignore) setIsLoading(false);
+          });
     }
     return () => {
       ignore = true;

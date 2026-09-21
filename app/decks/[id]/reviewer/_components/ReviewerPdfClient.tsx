@@ -7,13 +7,18 @@ import { Button, Badge } from '@/components/ui';
 import { ensureMultipleChoice, ASSESSMENT_CONFIGS } from '@/lib/assessments';
 import { getCurrentUser } from '@/lib/auth';
 
+import { getLocalCustomDecks, getLocalCustomCards } from '@/lib/data';
+
 interface Props {
-  deck: Deck;
-  stats: DeckStats;
-  cards: Card[];
+  deckId?: string;
+  deck: Deck | null;
+  stats?: DeckStats | null;
+  cards?: Card[];
 }
 
-export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
+export default function ReviewerPdfClient({ deckId, deck, stats, cards = [] }: Props) {
+  const [activeDeck, setActiveDeck] = useState<Deck | null>(deck);
+  const [activeCards, setActiveCards] = useState<Card[]>(cards);
   const [viewMode, setViewMode] = useState<'study' | 'mock'>('study');
   const [strategyTab, setStrategyTab] = useState<'all' | 'cram' | 'mastery'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,12 +31,27 @@ export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
     if (user && !user.isGuest && user.name) {
       setStudentName(user.name);
     }
-  }, []);
+
+    if (!deck && deckId) {
+      const customDecks = getLocalCustomDecks();
+      const found = customDecks.find((d) => d.id === deckId);
+      if (found) {
+        setActiveDeck(found);
+        const localCards = getLocalCustomCards(deckId);
+        setActiveCards(localCards);
+      }
+    } else if (deck && deckId) {
+      const localCards = getLocalCustomCards(deckId);
+      if (localCards.length > 0 && cards.length === 0) {
+        setActiveCards(localCards);
+      }
+    }
+  }, [deck, deckId, cards]);
 
   // Standardize 100% of cards into 4-choice Multiple Choice format
   const mcqCards = useMemo(() => {
-    return cards.map((c, idx) => ensureMultipleChoice(c, cards, idx));
-  }, [cards]);
+    return activeCards.map((c, idx) => ensureMultipleChoice(c, activeCards, idx));
+  }, [activeCards]);
 
   // Filtered cards based on search query
   const filteredCards = useMemo(() => {
@@ -90,6 +110,29 @@ export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
     );
   }
 
+  if (!activeDeck) {
+    return (
+      <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+        <div className="w-14 h-14 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[24px] flex items-center justify-center mx-auto">
+          📄
+        </div>
+        <h2 className="text-[20px] font-bold text-[var(--color-text)]">
+          Reviewer Deck Not Found
+        </h2>
+        <p className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
+          The requested study deck was not found in your current session.
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <Link href="/">
+            <Button variant="secondary" size="md">
+              Return to Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* ── Screen Navigation & Customization Controls (Hidden on Print) ── */}
@@ -97,7 +140,7 @@ export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
-              href={`/decks/${deck.id}`}
+              href={`/decks/${activeDeck.id}`}
               className="text-[13px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors flex items-center gap-1.5"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -107,7 +150,7 @@ export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
             </Link>
             <span className="text-[var(--color-border)]">•</span>
             <span className="text-[13px] text-[var(--color-text-tertiary)] truncate max-w-[200px] sm:max-w-xs">
-              {deck.title}
+              {activeDeck.title}
             </span>
           </div>
 
@@ -201,7 +244,7 @@ export default function ReviewerPdfClient({ deck, stats, cards }: Props) {
                 </span>
               </div>
               <h1 className="text-[26px] sm:text-[32px] font-extrabold tracking-tight text-[var(--color-text)] print:text-black">
-                {deck.title} — Comprehensive Reviewer &amp; Exam Bank
+                {activeDeck.title} — Comprehensive Reviewer &amp; Exam Bank
               </h1>
               <p className="text-[14px] text-[var(--color-text-secondary)] print:text-zinc-700 font-medium">
                 Standardized Academic Curriculum: 4 Short Quizzes · 2 Long Quizzes · 1 Comprehensive Exam

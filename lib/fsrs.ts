@@ -169,7 +169,16 @@ export async function getMasteryQueue(deckId: string): Promise<Card[]> {
     },
     orderBy: { due: 'asc' },
   });
-  return rows.map(mapToSharedCard);
+  if (rows.length > 0) {
+    return rows.map(mapToSharedCard);
+  }
+  // Fallback: If zero cards are overdue right now, return all cards in the deck
+  // so the user can study rather than seeing an empty queue
+  const allRows = await prisma.card.findMany({
+    where: { deckId },
+    orderBy: { due: 'asc' },
+  });
+  return allRows.map(mapToSharedCard);
 }
 
 /**

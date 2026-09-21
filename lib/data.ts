@@ -293,7 +293,15 @@ export async function getQueue(deckId: string, mode: ReviewMode): Promise<Card[]
     });
 
     if (res.ok) {
-      return await res.json();
+      const queueCards = await res.json();
+      if (Array.isArray(queueCards) && queueCards.length > 0) {
+        return queueCards;
+      }
+      // If server queue is empty, fall back to all deck cards so student can review
+      const allDeckCards = await getDeckCards(deckId);
+      if (allDeckCards.length > 0) {
+        return allDeckCards;
+      }
     }
   } catch (err) {
     console.warn(`[data] Could not fetch queue for ${deckId}, falling back:`, err);
@@ -302,14 +310,16 @@ export async function getQueue(deckId: string, mode: ReviewMode): Promise<Card[]
   const cards = await getMockCards();
   const deckCards = cards.filter((c) => c.deckId === deckId);
 
-  if (mode === 'mastery') {
-    const now = new Date().toISOString();
-    return deckCards
-      .filter((c) => c.due <= now)
-      .sort((a, b) => a.due.localeCompare(b.due));
+  if (deckCards.length > 0) {
+    if (mode === 'mastery') {
+      const now = new Date().toISOString();
+      const due = deckCards.filter((c) => c.due <= now);
+      return (due.length > 0 ? due : deckCards).sort((a, b) => a.due.localeCompare(b.due));
+    }
+    return [...deckCards].sort(() => Math.random() - 0.5);
   }
 
-  return [...deckCards].sort(() => Math.random() - 0.5);
+  return getLocalCustomCards(deckId);
 }
 
 /**

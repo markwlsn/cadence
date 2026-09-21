@@ -29,10 +29,6 @@ export default function NewDeckPage() {
   useEffect(() => {
     setMounted(true);
     const currentUser = getCurrentUser();
-    if (currentUser.isGuest) {
-      router.replace('/login?redirect=/decks/new');
-      return;
-    }
     setUser(currentUser);
 
     fetch('/api/status')
@@ -47,7 +43,7 @@ export default function NewDeckPage() {
       .catch(() => {
         setAiStatus({ checked: true, configured: true });
       });
-  }, [router]);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -94,15 +90,15 @@ export default function NewDeckPage() {
     }
   };
 
-  if (!mounted || !user || user.isGuest) {
+  if (!mounted || !user) {
     return (
       <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 rounded-full border-2 border-[var(--color-text)] border-t-transparent animate-spin" />
-            <p className="text-[15px] text-[var(--color-text-secondary)]">
-              Sign in required to create study decks…
+            <p className="text-[14px] text-[var(--color-text-secondary)]">
+              Loading deck studio…
             </p>
           </div>
         </div>

@@ -11,13 +11,14 @@ export const revalidate = 0;
 
 export default async function DeckReviewerPage({ params }: ReviewerPageProps) {
   const { id } = await params;
-  const deck = await getDeck(id);
+  const deck = await getDeck(id).catch(() => null);
 
-  if (!deck) {
-    notFound();
-  }
-
-  const [stats, cards] = await Promise.all([getDeckStats(id), getDeckCards(id)]);
+  const [stats, cards] = deck
+    ? await Promise.all([
+        getDeckStats(id).catch(() => null),
+        getDeckCards(id).catch(() => []),
+      ])
+    : [null, []];
 
   return (
     <div className="min-h-dvh flex flex-col bg-[var(--color-bg)]">
@@ -26,15 +27,12 @@ export default async function DeckReviewerPage({ params }: ReviewerPageProps) {
       </div>
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 pt-6 pb-28 md:py-10 print:p-0 print:max-w-none">
-        <div className="flex items-center gap-2 mb-6 print:hidden">
-          <BackButton href={`/decks/${deck.id}`} label={deck.title} />
-          <span className="text-[var(--color-text-tertiary)] text-[13px]">/</span>
-          <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
-            Academic Reviewer PDF (Cram &amp; Mastery)
-          </span>
-        </div>
-
-        <ReviewerPdfClient deck={deck} stats={stats} cards={cards} />
+        <ReviewerPdfClient
+          deckId={id}
+          deck={deck}
+          stats={stats}
+          cards={cards}
+        />
       </main>
     </div>
   );
