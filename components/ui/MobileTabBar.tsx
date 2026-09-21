@@ -21,8 +21,13 @@ export function MobileTabBar() {
     };
   }, []);
 
-  // Hide tab bar on active review sessions and auth pages to maximize focus and prevent keyboard overlap
-  if (pathname.includes('/review') || pathname === '/login' || pathname === '/register') {
+  // Hide tab bar on active review sessions, onboarding, and auth pages to maximize focus and prevent overlap
+  if (
+    pathname.includes('/review') ||
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/onboarding'
+  ) {
     return null;
   }
 

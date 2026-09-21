@@ -78,42 +78,44 @@ export default function OnboardingPage() {
   const step = steps[currentStep];
 
   return (
-    <main className="min-h-dvh flex flex-col justify-between p-6 sm:p-12 max-w-xl mx-auto w-full">
+    <main className="min-h-dvh flex flex-col justify-between p-4 sm:p-10 max-w-xl mx-auto w-full overflow-y-auto">
       {/* Top Header & Skip */}
-      <header className="flex items-center justify-between pt-4">
-        <CadenceLogo size={28} showText />
+      <header className="flex items-center justify-between pt-2 sm:pt-4 pb-2 shrink-0">
+        <CadenceLogo size={30} showText />
         <button
           type="button"
           onClick={handleFinish}
-          className="text-[14px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors py-1 px-2"
+          className="text-[14px] font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors py-2 px-3 min-h-[44px] flex items-center"
         >
           Skip
         </button>
       </header>
 
       {/* Main Content Card */}
-      <section className="my-auto py-8">
-        <span className="inline-block text-[13px] font-semibold text-[var(--color-text)] uppercase tracking-wider mb-3">
-          {step.tag}
-        </span>
-        <h1 className="text-[28px] sm:text-[34px] font-bold tracking-tight text-[var(--color-text)] leading-tight mb-4">
-          {step.title}
-        </h1>
-        <p className="text-[16px] sm:text-[18px] text-[var(--color-text-secondary)] leading-relaxed mb-8">
-          {step.description}
-        </p>
+      <section className="my-auto py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <div>
+          <span className="inline-block text-[12px] sm:text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider mb-2">
+            {step.tag}
+          </span>
+          <h1 className="text-[24px] sm:text-[32px] font-bold tracking-tight text-[var(--color-text)] leading-tight mb-3">
+            {step.title}
+          </h1>
+          <p className="text-[14px] sm:text-[16px] text-[var(--color-text-secondary)] leading-relaxed">
+            {step.description}
+          </p>
+        </div>
 
         {/* Feature Comparison / Highlights */}
-        <div className="space-y-3">
+        <div className="space-y-2.5 sm:space-y-3">
           {step.detail.map((item, idx) => (
             <div
               key={idx}
-              className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3"
+              className="p-3.5 sm:p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3"
             >
-              <span className="font-semibold text-[15px] text-[var(--color-text)] shrink-0">
+              <span className="font-semibold text-[14px] sm:text-[15px] text-[var(--color-text)] shrink-0">
                 {item.label}:
               </span>
-              <span className="text-[14px] text-[var(--color-text-secondary)]">
+              <span className="text-[13px] sm:text-[14px] text-[var(--color-text-secondary)] leading-snug">
                 {item.text}
               </span>
             </div>
@@ -122,16 +124,16 @@ export default function OnboardingPage() {
       </section>
 
       {/* Footer Controls */}
-      <footer className="flex flex-col gap-6 pb-6">
+      <footer className="flex flex-col gap-4 sm:gap-6 pb-6 pt-3 shrink-0">
         {/* Progress Dots */}
-        <div className="flex items-center justify-center gap-2" aria-label="Step indicator">
+        <div className="flex items-center justify-center gap-2 py-1" aria-label="Step indicator">
           {steps.map((_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setCurrentStep(idx)}
               aria-label={`Go to step ${idx + 1}`}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 idx === currentStep
                   ? 'w-6 bg-[var(--color-text)]'
                   : 'w-2 bg-[var(--color-border-strong)] opacity-50 hover:opacity-100'
@@ -141,13 +143,13 @@ export default function OnboardingPage() {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           {currentStep > 0 && (
             <Button
               variant="secondary"
               size="lg"
               onClick={handleBack}
-              className="flex-1"
+              className="flex-1 h-12 sm:h-14 text-[15px] font-semibold"
             >
               Back
             </Button>
@@ -156,7 +158,7 @@ export default function OnboardingPage() {
             variant="primary"
             size="lg"
             onClick={handleNext}
-            className="flex-1"
+            className="flex-1 h-12 sm:h-14 text-[15px] font-semibold shadow-md"
           >
             {currentStep === steps.length - 1 ? 'Get Started' : 'Continue'}
           </Button>
