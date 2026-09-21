@@ -10,6 +10,12 @@ import DeckStudyGuide from './DeckStudyGuide';
 import { getDeckAssessmentProgress } from '@/lib/assessments';
 import { calculateExamReadiness, type ExamReadinessResult } from '@/lib/readiness';
 import { getLocalCustomCards } from '@/lib/data';
+import {
+  getDeckExamDate,
+  setDeckExamDate,
+  calculatePacing,
+  type ExamPacingResult,
+} from '@/lib/exam-pacing';
 
 interface Props {
   deck: Deck;
@@ -22,6 +28,9 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
   const [readiness, setReadiness] = useState<ExamReadinessResult | null>(null);
   const [mounted, setMounted] = useState(false);
   const [cardList, setCardList] = useState<Card[]>(cards);
+  const [examDate, setExamDate] = useState<string | null>(null);
+  const [pacing, setPacing] = useState<ExamPacingResult | null>(null);
+  const [isEditingDate, setIsEditingDate] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -32,16 +41,54 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
     }
 
     const totalCardCount = cards.length > 0 ? cards.length : localCards.length || stats.totalCards;
-    const updateScore = () => {
+    const storedDate = getDeckExamDate(deck.id);
+    setExamDate(storedDate);
+
+    const updateScoreAndPacing = () => {
       const progress = getDeckAssessmentProgress(deck.id);
       const res = calculateExamReadiness(progress, totalCardCount, stats.masteredCount);
       setReadiness(res);
+
+      const completedCount = Object.values(progress).filter((p) => p.completed).length;
+      const pacingRes = calculatePacing(
+        storedDate,
+        totalCardCount,
+        stats.masteredCount,
+        completedCount,
+        7
+      );
+      setPacing(pacingRes);
     };
 
-    updateScore();
-    window.addEventListener('cadence_assessment_updated', updateScore);
-    return () => window.removeEventListener('cadence_assessment_updated', updateScore);
+    updateScoreAndPacing();
+    window.addEventListener('cadence_assessment_updated', updateScoreAndPacing);
+    return () => window.removeEventListener('cadence_assessment_updated', updateScoreAndPacing);
   }, [deck.id, stats.totalCards, stats.masteredCount]);
+
+  const handleSetExamDate = (newDate: string | null) => {
+    setExamDate(newDate);
+    setDeckExamDate(deck.id, newDate);
+    setIsEditingDate(false);
+
+    const totalCardCount = cardList.length > 0 ? cardList.length : stats.totalCards;
+    const progress = getDeckAssessmentProgress(deck.id);
+    const completedCount = Object.values(progress).filter((p) => p.completed).length;
+    const pacingRes = calculatePacing(
+      newDate,
+      totalCardCount,
+      stats.masteredCount,
+      completedCount,
+      7
+    );
+    setPacing(pacingRes);
+  };
+
+  const setQuickDate = (daysFromNow: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    const dateStr = d.toISOString().split('T')[0];
+    handleSetExamDate(dateStr);
+  };
 
   const masteryPercent =
     stats.totalCards > 0
@@ -211,6 +258,113 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
               <span>Progress Report</span>
               <span aria-hidden="true">&rarr;</span>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2.5. Exam Countdown & Daily Study Pacing Widget ────────────────────── */}
+      <section className="p-4 sm:p-5 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-raised)] border border-[var(--color-border)] flex items-center justify-center text-[20px] shrink-0">
+              📅
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-[14px] sm:text-[15px] font-bold text-[var(--color-text)]">
+                  Target Exam Date &amp; Daily Study Pace
+                </h3>
+                {pacing?.isSet && (
+                  <Badge
+                    variant={pacing.isToday ? 'accent' : pacing.isPast ? 'neutral' : 'success'}
+                    size="sm"
+                    className="font-bold text-[11px]"
+                  >
+                    {pacing.statusLabel}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[13px] text-[var(--color-text-secondary)] font-medium mt-0.5">
+                {mounted && pacing ? pacing.pacingSummary : 'Set your exam date to generate a personalized daily pace.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {isEditingDate ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={examDate || ''}
+                  onChange={(e) => handleSetExamDate(e.target.value || null)}
+                  className="px-2.5 py-1 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-text)]"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditingDate(false)}
+                  className="text-[12px]"
+                >
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {!examDate ? (
+                  <>
+                    <span className="text-[11px] font-semibold text-[var(--color-text-tertiary)] mr-1 hidden sm:inline">
+                      Quick Set:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate(3)}
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                    >
+                      3 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate(7)}
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                    >
+                      1 Week
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickDate(14)}
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                    >
+                      2 Weeks
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDate(true)}
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                    >
+                      Pick Date…
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingDate(true)}
+                      className="px-2.5 py-1 rounded-[var(--radius-sm)] text-[12px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                    >
+                      Change Date ({examDate})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetExamDate(null)}
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-rose-500 transition-colors"
+                      title="Clear exam date"
+                    >
+                      Clear
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>

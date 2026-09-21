@@ -51,9 +51,9 @@ export default function ReviewSessionPage() {
   const [missedCardIds, setMissedCardIds] = useState<string[]>([]);
   const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
 
-  // Exam timer: 35 minutes default
-  const [timeLeft, setTimeLeft] = useState(35 * 60);
-  const [timerActive, setTimerActive] = useState(true);
+  // Session Stopwatch Timer
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(true);
 
   // Review interaction state
   const [isFlipped, setIsFlipped] = useState(false);
@@ -62,14 +62,20 @@ export default function ReviewSessionPage() {
   const [sessionId, setSessionId] = useState<string>('');
   const [isRationaleOpen, setIsRationaleOpen] = useState(false);
 
-  // Countdown timer effect
+  // Session timer effect (stopwatch)
   useEffect(() => {
-    if (!isExam || !timerActive || timeLeft <= 0) return;
+    if (!timerRunning || isLoading || cards.length === 0) return;
     const interval = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
+      setElapsedSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [isExam, timerActive, timeLeft]);
+  }, [timerRunning, isLoading, cards.length]);
+
+  const formatElapsed = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
 
   const toggleFlag = (cardId: string) => {
     setFlaggedIds((prev) => {
@@ -228,7 +234,7 @@ export default function ReviewSessionPage() {
       const missedQuery = updatedMissed.length > 0 ? `&missed=${updatedMissed.join(',')}` : '';
       const assessmentQuery = assessmentId ? `&assessment=${assessmentId}` : '';
       router.push(
-        `/decks/${deckId}/review/summary?sessionId=${sessionId}${assessmentQuery}&correct=${updatedCorrect}&total=${cards.length}${missedQuery}`
+        `/decks/${deckId}/review/summary?sessionId=${sessionId}${assessmentQuery}&correct=${updatedCorrect}&total=${cards.length}&time=${elapsedSeconds}${missedQuery}`
       );
     } else {
       // Advance to next card
@@ -314,7 +320,7 @@ export default function ReviewSessionPage() {
             </span>
           </div>
 
-          {/* Mode Switcher, Remediation Badge, or Assessment Info + Timer */}
+          {/* Mode Switcher, Remediation Badge, or Assessment Info */}
           {drillMode === 'mistakes' ? (
             <Badge variant="accent" size="sm" className="font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px]">
               🎯 Remediation
@@ -324,23 +330,28 @@ export default function ReviewSessionPage() {
               <Badge variant="accent" size="sm" className="font-semibold max-w-[105px] sm:max-w-none truncate text-[11px]">
                 {assessmentConfig.title}
               </Badge>
-              {isExam && (
-                <button
-                  type="button"
-                  onClick={() => setTimerActive(!timerActive)}
-                  className="px-2 py-0.5 rounded text-[11px] sm:text-[12px] font-mono font-bold bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-colors shrink-0"
-                  title="Click to pause or resume countdown"
-                >
-                  ⏱️ {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                </button>
-              )}
             </div>
           ) : (
             <ModeToggle mode={mode} onChange={handleModeChange} />
           )}
 
-          {/* Question Flagging + Theme Toggle + Progress badge */}
+          {/* Session Stopwatch Timer + Question Flagging + Theme Toggle + Progress badge */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTimerRunning((prev) => !prev)}
+              className={`px-2 py-0.5 rounded text-[11px] sm:text-[12px] font-mono font-semibold border transition-all flex items-center gap-1 shrink-0 ${
+                timerRunning
+                  ? 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+              }`}
+              title={timerRunning ? 'Click to pause timer' : 'Click to resume timer'}
+            >
+              <span>⏱️</span>
+              <span>{formatElapsed(elapsedSeconds)}</span>
+              {!timerRunning && <span className="text-[9px] uppercase font-bold tracking-wider hidden sm:inline">(Paused)</span>}
+            </button>
+
             {cards[currentIndex] && (
               <button
                 type="button"

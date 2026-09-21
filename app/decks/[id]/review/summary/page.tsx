@@ -32,8 +32,11 @@ export default function SessionSummaryPage() {
   const assessmentId = searchParams?.get('assessment') || null;
   const paramCorrect = searchParams?.get('correct');
   const paramTotal = searchParams?.get('total');
+  const paramTime = searchParams?.get('time');
   const paramMissed = searchParams?.get('missed') || '';
   const missedIds = paramMissed ? paramMissed.split(',').filter(Boolean) : [];
+
+  const elapsedSeconds = paramTime ? parseInt(paramTime, 10) : 0;
 
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [animatedAccuracy, setAnimatedAccuracy] = useState(0);
@@ -154,7 +157,7 @@ export default function SessionSummaryPage() {
       </section>
 
       {/* Academic Metrics Grid */}
-      <section className="grid grid-cols-3 gap-3 w-full">
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
         <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
           <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
             Questions
@@ -175,9 +178,27 @@ export default function SessionSummaryPage() {
 
         <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
           <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
+            Time &amp; Pace
+          </span>
+          <span className="text-[18px] font-bold text-[var(--color-text)] block">
+            {elapsedSeconds > 0 ? (
+              elapsedSeconds >= 60 ? `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s` : `${elapsedSeconds}s`
+            ) : (
+              '—'
+            )}
+          </span>
+          <span className="text-[10px] font-medium text-[var(--color-text-secondary)] block">
+            {elapsedSeconds > 0 && totalCount > 0
+              ? `~${Math.round(elapsedSeconds / totalCount)}s / item`
+              : 'Untimed'}
+          </span>
+        </div>
+
+        <div className="p-4 rounded-[var(--radius-md)] bg-[var(--color-surface)] border border-[var(--color-border)] text-center">
+          <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-1">
             Status
           </span>
-          <span className={`text-[16px] font-bold ${isPassed ? 'text-[var(--color-success)]' : 'text-amber-500'}`}>
+          <span className={`text-[16px] font-bold block ${isPassed ? 'text-[var(--color-success)]' : 'text-amber-500'}`}>
             {isPassed ? 'Passed' : 'Review'}
           </span>
         </div>

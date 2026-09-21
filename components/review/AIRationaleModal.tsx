@@ -39,6 +39,7 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
             correctAnswer: card.back,
             explanation: card.explanation,
             cardType: card.type,
+            options: card.options && card.options.length > 0 ? card.options : undefined,
           }),
         });
 
@@ -128,29 +129,77 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
         {/* Loaded Content */}
         {!loading && data && (
           <div className="space-y-4 text-[13.5px] leading-relaxed">
-            {/* The Trap / Distractor */}
-            <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] space-y-1">
+            {/* The Causal Mechanism (Why Correct) */}
+            <div className="p-4 rounded-[var(--radius-md)] bg-emerald-500/10 border border-emerald-500/30 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-                  {chosenAnswer ? '⚠️ The Cognitive Trap in Your Choice' : '⚠️ Common Distractor Pitfall'}
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                  <span>✓</span> Why The Correct Answer Is Right
                 </span>
               </div>
-              <p className="text-[var(--color-text-secondary)]">
-                {data.misconception}
-              </p>
-            </div>
-
-            {/* The Causal Mechanism */}
-            <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text)]">
-                  ✓ The Causal Mechanism (Why It’s Correct)
-                </span>
-              </div>
-              <p className="text-[var(--color-text)] font-medium">
+              <p className="text-[var(--color-text)] font-medium leading-relaxed">
                 {data.correctPrinciple}
               </p>
             </div>
+
+            {/* Why Other Options Are Wrong (Distractor Breakdown) */}
+            {data.distractors && data.distractors.filter((d) => !d.isCorrect).length > 0 ? (
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] block">
+                  ✗ Why Other Options Are Wrong (Distractor Analysis)
+                </span>
+                <div className="space-y-2">
+                  {data.distractors
+                    .filter((d) => !d.isCorrect)
+                    .map((distractor, idx) => {
+                      const isChosen =
+                        chosenAnswer &&
+                        distractor.option.trim().toLowerCase() === chosenAnswer.trim().toLowerCase();
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-[var(--radius-md)] border space-y-1 transition-all ${
+                            isChosen
+                              ? 'bg-amber-500/10 border-amber-500/40 text-[var(--color-text)]'
+                              : 'bg-[var(--color-surface-raised)] border-[var(--color-border)] text-[var(--color-text)]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-[13px] text-rose-500 shrink-0">
+                                ✗
+                              </span>
+                              <span className="font-semibold text-[13px] text-[var(--color-text)] truncate">
+                                {distractor.option}
+                              </span>
+                            </div>
+                            {isChosen && (
+                              <Badge variant="accent" size="sm" className="font-bold text-[10px] shrink-0 bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40">
+                                ⚠️ Your Choice
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[12.5px] text-[var(--color-text-secondary)] leading-relaxed pl-4">
+                            {distractor.explanation}
+                          </p>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            ) : (
+              /* Fallback Single Trap Card when no multi-choice distractors */
+              <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    {chosenAnswer ? '⚠️ The Cognitive Trap in Your Choice' : '⚠️ Common Distractor Pitfall'}
+                  </span>
+                </div>
+                <p className="text-[var(--color-text-secondary)]">
+                  {data.misconception}
+                </p>
+              </div>
+            )}
 
             {/* Key Active-Recall Takeaway */}
             <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--color-text)] text-[var(--color-bg)] space-y-1">
