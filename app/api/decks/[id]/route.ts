@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, ensureDbReady } from '@/lib/db';
 import type { Deck } from '@/types';
 
 interface RouteContext {
@@ -22,6 +22,7 @@ function mapDeck(d: { id: string; title: string; sourceType: string; isArchived?
  */
 export async function GET(request: Request, context: RouteContext) {
   try {
+    await ensureDbReady();
     const { id } = await context.params;
 
     const deck = await prisma.deck.findUnique({

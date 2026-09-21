@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, ensureDbReady } from '@/lib/db';
 import { mapToSharedCard } from '@/lib/fsrs';
 
 interface RouteContext {
@@ -12,6 +12,7 @@ interface RouteContext {
  */
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    await ensureDbReady();
     const { id: deckId } = await context.params;
 
     const deck = await prisma.deck.findUnique({

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, ensureDbReady } from '@/lib/db';
 import { scheduleAndPersistCard } from '@/lib/fsrs';
 import type { Rating } from '@/types';
 
@@ -12,6 +12,7 @@ const VALID_RATINGS: Rating[] = ['again', 'hard', 'good', 'easy'];
  */
 export async function POST(request: Request) {
   try {
+    await ensureDbReady();
     const body = await request.json().catch(() => ({}));
     const { cardId, rating, confidenceBefore } = body;
 

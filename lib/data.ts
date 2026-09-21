@@ -50,6 +50,48 @@ async function getMockStats() {
   return mockStats;
 }
 
+// ─── Local Custom Decks & Cards Storage (Resilience for Serverless Deployments) ─
+
+const CUSTOM_DECKS_KEY = 'cadence_custom_decks';
+const CUSTOM_CARDS_KEY = 'cadence_custom_cards';
+
+export function getLocalCustomDecks(): Deck[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_DECKS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalCustomDeck(deck: Deck, cards: Card[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existingDecks = getLocalCustomDecks().filter((d) => d.id !== deck.id);
+    localStorage.setItem(CUSTOM_DECKS_KEY, JSON.stringify([deck, ...existingDecks]));
+
+    const rawCards = localStorage.getItem(CUSTOM_CARDS_KEY);
+    const existingCards: Card[] = rawCards ? JSON.parse(rawCards) : [];
+    const otherCards = existingCards.filter((c) => c.deckId !== deck.id);
+    localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify([...otherCards, ...cards]));
+  } catch (e) {
+    console.warn('[data] Failed to save custom deck to localStorage:', e);
+  }
+}
+
+export function getLocalCustomCards(deckId: string): Card[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_CARDS_KEY);
+    if (!raw) return [];
+    const cards: Card[] = JSON.parse(raw);
+    return cards.filter((c) => c.deckId === deckId);
+  } catch {
+    return [];
+  }
+}
+
 // ─── Deck Functions ───────────────────────────────────────────────────────────
 
 /**
@@ -57,26 +99,39 @@ async function getMockStats() {
  * Corresponds to GET /api/decks
  */
 export async function getDecks(): Promise<Deck[]> {
+  let decks: Deck[] = [];
+
   if (USE_MOCKS) {
-    return getMockDecks();
-  }
+    decks = await getMockDecks();
+  } else {
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/decks`, {
+        cache: 'no-store',
+      });
 
-  try {
-    const res = await fetch(`${getBaseUrl()}/api/decks`, {
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          decks = data;
+        }
       }
+    } catch (err) {
+      console.warn('[data] Could not fetch decks from API, falling back to mock data:', err);
     }
-  } catch (err) {
-    console.warn('[data] Could not fetch decks from API, falling back to mock data:', err);
+
+    if (decks.length === 0) {
+      decks = await getMockDecks();
+    }
   }
 
-  return getMockDecks();
+  // Merge client-side custom decks if in browser
+  const custom = getLocalCustomDecks();
+  if (custom.length > 0) {
+    const customIds = new Set(custom.map((d) => d.id));
+    return [...custom, ...decks.filter((d) => !customIds.has(d.id))];
+  }
+
+  return decks;
 }
 
 /**
@@ -84,6 +139,9 @@ export async function getDecks(): Promise<Deck[]> {
  * Corresponds to GET /api/decks/:id
  */
 export async function getDeck(id: string): Promise<Deck | null> {
+  const custom = getLocalCustomDecks().find((d) => d.id === id);
+  if (custom) return custom;
+
   if (USE_MOCKS) {
     const decks = await getMockDecks();
     return decks.find((d) => d.id === id) ?? null;
@@ -114,6 +172,20 @@ export async function getDeck(id: string): Promise<Deck | null> {
  * Corresponds to GET /api/decks/:id/stats
  */
 export async function getDeckStats(deckId: string): Promise<DeckStats> {
+  const customCards = getLocalCustomCards(deckId);
+  if (customCards.length > 0) {
+    const now = new Date().toISOString();
+    const dueNow = customCards.filter((c) => c.due <= now).length;
+    const masteredCount = customCards.filter((c) => c.stability >= 21).length;
+    return {
+      deckId,
+      totalCards: customCards.length,
+      dueNow,
+      masteredCount,
+      accuracyLast7Days: 1.0,
+    };
+  }
+
   if (USE_MOCKS) {
     const stats = await getMockStats();
     return (
@@ -156,6 +228,9 @@ export async function getDeckStats(deckId: string): Promise<DeckStats> {
  * Corresponds to GET /api/decks/:id/cards
  */
 export async function getDeckCards(deckId: string): Promise<Card[]> {
+  const customCards = getLocalCustomCards(deckId);
+  if (customCards.length > 0) return customCards;
+
   if (USE_MOCKS) {
     const cards = await getMockCards();
     return cards.filter((c) => c.deckId === deckId);
@@ -184,6 +259,16 @@ export async function getDeckCards(deckId: string): Promise<Card[]> {
  * Corresponds to GET /api/review/queue?deckId=&mode=
  */
 export async function getQueue(deckId: string, mode: ReviewMode): Promise<Card[]> {
+  const customCards = getLocalCustomCards(deckId);
+  if (customCards.length > 0) {
+    if (mode === 'mastery') {
+      const now = new Date().toISOString();
+      const due = customCards.filter((c) => c.due <= now);
+      return (due.length > 0 ? due : customCards).sort((a, b) => a.due.localeCompare(b.due));
+    }
+    return [...customCards].sort(() => Math.random() - 0.5);
+  }
+
   if (USE_MOCKS) {
     const cards = await getMockCards();
     const deckCards = cards.filter((c) => c.deckId === deckId);
@@ -398,23 +483,42 @@ export async function createDeck(params: {
   }
 
   // 1. Create the deck record
-  const createRes = await fetch(`${getBaseUrl()}/api/decks`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      title: params.title,
+  let deck: Deck;
+  try {
+    const createRes = await fetch(`${getBaseUrl()}/api/decks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: params.title,
+        sourceType: params.sourceType,
+      }),
+    });
+
+    if (createRes.ok) {
+      deck = await createRes.json();
+    } else {
+      const err = await createRes.json().catch(() => ({}));
+      console.warn('[data] Backend /api/decks failed, creating local fallback deck:', err);
+      deck = {
+        id: `deck-${Date.now()}`,
+        title: params.title || 'Untitled Deck',
+        sourceType: params.sourceType,
+        createdAt: new Date().toISOString(),
+        isArchived: false,
+      };
+    }
+  } catch (err) {
+    console.warn('[data] Network failure contacting /api/decks, using local deck:', err);
+    deck = {
+      id: `deck-${Date.now()}`,
+      title: params.title || 'Untitled Deck',
       sourceType: params.sourceType,
-    }),
-  });
-
-  if (!createRes.ok) {
-    const err = await createRes.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to create deck');
+      createdAt: new Date().toISOString(),
+      isArchived: false,
+    };
   }
-
-  const deck: Deck = await createRes.json();
 
   // 2. Ingest content if provided
   let chunks: string[] = [];
@@ -434,7 +538,9 @@ export async function createDeck(params: {
       const ingestData = await ingestRes.json();
       chunks = ingestData.chunks || [];
     } else {
-      console.warn('File ingestion failed:', await ingestRes.text());
+      const err = await ingestRes.json().catch(() => ({}));
+      console.warn('File ingestion failed:', err);
+      throw new Error(err.error || 'Failed to extract text from the uploaded document.');
     }
   } else if (params.rawContent && params.rawContent.trim()) {
     const ingestRes = await fetch(
@@ -450,7 +556,8 @@ export async function createDeck(params: {
       const ingestData = await ingestRes.json();
       chunks = ingestData.chunks || [];
     } else {
-      console.warn('Text ingestion failed:', await ingestRes.text());
+      const err = await ingestRes.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to process notes text.');
     }
   }
 
@@ -470,9 +577,12 @@ export async function createDeck(params: {
       cards = await generateRes.json();
     } else {
       const err = await generateRes.json().catch(() => ({}));
-      throw new Error(err.error || 'Failed to generate flashcards from source material');
+      throw new Error(err.error || 'Failed to generate flashcards with AI.');
     }
   }
+
+  // Save to client storage as persistent backup
+  saveLocalCustomDeck(deck, cards);
 
   return { deck, cards };
 }
@@ -482,13 +592,30 @@ export async function createDeck(params: {
  * Corresponds to DELETE /api/decks/:id
  */
 export async function deleteDeck(deckId: string): Promise<boolean> {
-  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
-    method: 'DELETE',
-  });
+  if (typeof window !== 'undefined') {
+    try {
+      const existing = getLocalCustomDecks().filter((d) => d.id !== deckId);
+      localStorage.setItem(CUSTOM_DECKS_KEY, JSON.stringify(existing));
+      const rawCards = localStorage.getItem(CUSTOM_CARDS_KEY);
+      if (rawCards) {
+        const cards: Card[] = JSON.parse(rawCards);
+        localStorage.setItem(
+          CUSTOM_CARDS_KEY,
+          JSON.stringify(cards.filter((c) => c.deckId !== deckId))
+        );
+      }
+    } catch {}
+  }
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to delete deck ${deckId}`);
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      console.warn(`[data] Remote delete returned status ${res.status}`);
+    }
+  } catch (err) {
+    console.warn(`[data] Could not delete remote deck ${deckId}:`, err);
   }
 
   return true;
@@ -499,17 +626,40 @@ export async function deleteDeck(deckId: string): Promise<boolean> {
  * Corresponds to PATCH /api/decks/:id
  */
 export async function archiveDeck(deckId: string, isArchived: boolean): Promise<Deck> {
-  const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isArchived }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to update archive status for deck ${deckId}`);
+  if (typeof window !== 'undefined') {
+    try {
+      const customDecks = getLocalCustomDecks();
+      const idx = customDecks.findIndex((d) => d.id === deckId);
+      if (idx !== -1) {
+        customDecks[idx].isArchived = isArchived;
+        localStorage.setItem(CUSTOM_DECKS_KEY, JSON.stringify(customDecks));
+      }
+    } catch {}
   }
 
-  return res.json();
+  try {
+    const res = await fetch(`${getBaseUrl()}/api/decks/${encodeURIComponent(deckId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isArchived }),
+    });
+
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[data] Could not patch remote deck ${deckId}:`, err);
+  }
+
+  const found = getLocalCustomDecks().find((d) => d.id === deckId);
+  if (found) return found;
+
+  return {
+    id: deckId,
+    title: 'Deck',
+    sourceType: 'text',
+    isArchived,
+    createdAt: new Date().toISOString(),
+  };
 }
 

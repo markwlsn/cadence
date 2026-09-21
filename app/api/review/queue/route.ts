@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, ensureDbReady } from '@/lib/db';
 import { getMasteryQueue, getCramQueue } from '@/lib/fsrs';
 import type { ReviewMode } from '@/types';
 
@@ -9,6 +9,7 @@ import type { ReviewMode } from '@/types';
  */
 export async function GET(request: Request) {
   try {
+    await ensureDbReady();
     const { searchParams } = new URL(request.url);
     const deckId = searchParams.get('deckId');
     const mode = (searchParams.get('mode') ?? 'mastery') as ReviewMode;

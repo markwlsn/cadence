@@ -130,10 +130,25 @@ export default function NewDeckPage() {
             {errorMessage && (
               <div
                 role="alert"
-                className="p-4 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[14px] flex items-start gap-3 animate-fade-in"
+                className="p-4 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-[14px] flex flex-col gap-2 animate-fade-in"
               >
-                <span className="font-bold">Error:</span>
-                <span className="flex-1">{errorMessage}</span>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold shrink-0">⚠️ Error:</span>
+                  <span className="flex-1 leading-relaxed">{errorMessage}</span>
+                </div>
+                {(errorMessage.toLowerCase().includes('gemini') ||
+                  errorMessage.toLowerCase().includes('api key') ||
+                  errorMessage.toLowerCase().includes('ai provider') ||
+                  errorMessage.toLowerCase().includes('configured')) && (
+                  <div className="mt-1 p-3 rounded bg-[var(--color-surface)] border border-red-500/20 text-[13px] text-[var(--color-text)]">
+                    <p className="font-semibold mb-1">How to fix on Vercel:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-[var(--color-text-secondary)]">
+                      <li>Go to your <strong>Vercel Dashboard → Project Settings → Environment Variables</strong>.</li>
+                      <li>Add key: <code className="px-1.5 py-0.5 rounded bg-[var(--color-surface-overlay)] font-mono text-[var(--color-text)]">GEMINI_API_KEY</code> with your Google AI Studio API key.</li>
+                      <li>Redeploy your project from the <strong>Deployments</strong> tab.</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             )}
 

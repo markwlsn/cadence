@@ -9,6 +9,7 @@ import DeckAssessmentsList from './DeckAssessmentsList';
 import DeckStudyGuide from './DeckStudyGuide';
 import { getDeckAssessmentProgress } from '@/lib/assessments';
 import { calculateExamReadiness, type ExamReadinessResult } from '@/lib/readiness';
+import { getLocalCustomCards } from '@/lib/data';
 
 interface Props {
   deck: Deck;
@@ -20,13 +21,20 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
   const [activeTab, setActiveTab] = useState<'curriculum' | 'guide'>('curriculum');
   const [readiness, setReadiness] = useState<ExamReadinessResult | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [cardList, setCardList] = useState<Card[]>(cards);
 
   useEffect(() => {
     setMounted(true);
 
+    const localCards = getLocalCustomCards(deck.id);
+    if (localCards.length > 0 && cards.length === 0) {
+      setCardList(localCards);
+    }
+
+    const totalCardCount = cards.length > 0 ? cards.length : localCards.length || stats.totalCards;
     const updateScore = () => {
       const progress = getDeckAssessmentProgress(deck.id);
-      const res = calculateExamReadiness(progress, stats.totalCards, stats.masteredCount);
+      const res = calculateExamReadiness(progress, totalCardCount, stats.masteredCount);
       setReadiness(res);
     };
 
@@ -63,7 +71,7 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
             {deck.title}
           </h1>
           <p className="text-[14px] text-[var(--color-text-secondary)] mt-1">
-            {cards.length} Question Items · Created {new Date(deck.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+            {cardList.length > 0 ? cardList.length : stats.totalCards} Question Items · Created {new Date(deck.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
           </p>
         </div>
 
@@ -76,12 +84,12 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Link href={`/decks/${deck.id}/review?mode=cram`} className="flex-1 sm:flex-initial">
               <Button variant="secondary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px]">
-                Cram All ({stats.totalCards})
+                Cram All ({cardList.length > 0 ? cardList.length : stats.totalCards})
               </Button>
             </Link>
             <Link href={`/decks/${deck.id}/review?mode=mastery`} className="flex-1 sm:flex-initial">
               <Button variant="primary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px]">
-                Start Review ({stats.dueNow > 0 ? stats.dueNow : stats.totalCards})
+                Start Review ({stats.dueNow > 0 ? stats.dueNow : cardList.length > 0 ? cardList.length : stats.totalCards})
               </Button>
             </Link>
           </div>
@@ -188,9 +196,9 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
       {/* ── 4. Tab Views ──────────────────────────────────────────────── */}
       {activeTab === 'curriculum' ? (
-        <DeckAssessmentsList deckId={deck.id} totalCards={stats.totalCards} />
+        <DeckAssessmentsList deckId={deck.id} totalCards={cardList.length > 0 ? cardList.length : stats.totalCards} />
       ) : (
-        <DeckStudyGuide deckTitle={deck.title} cards={cards} deckId={deck.id} />
+        <DeckStudyGuide deckTitle={deck.title} cards={cardList} deckId={deck.id} />
       )}
     </div>
   );

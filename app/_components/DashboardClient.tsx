@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
-import { deleteDeck, archiveDeck } from '@/lib/data';
+import { deleteDeck, archiveDeck, getLocalCustomDecks, getLocalCustomCards } from '@/lib/data';
 import { Badge, Button } from '@/components/ui';
 import type { Deck, DeckStats } from '@/types';
 import type { User } from '@/lib/auth';
@@ -60,12 +60,38 @@ export default function DashboardClient({ decks, statsEntries }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Build statsMap from serialised entries
-  const statsMap = new Map<string, DeckStats>(statsEntries);
+  const [statsMap, setStatsMap] = useState<Map<string, DeckStats>>(() => new Map<string, DeckStats>(statsEntries));
 
   useEffect(() => {
     setMounted(true);
     setGreeting(getGreeting());
     setUser(getCurrentUser());
+
+    const custom = getLocalCustomDecks();
+    if (custom.length > 0) {
+      setDeckList((prev) => {
+        const existingIds = new Set(prev.map((d) => d.id));
+        const newDecks = custom.filter((d) => !existingIds.has(d.id));
+        return [...newDecks, ...prev];
+      });
+      setStatsMap((prevMap) => {
+        const nextMap = new Map(prevMap);
+        for (const d of custom) {
+          if (!nextMap.has(d.id)) {
+            const cards = getLocalCustomCards(d.id);
+            const now = new Date().toISOString();
+            nextMap.set(d.id, {
+              deckId: d.id,
+              totalCards: cards.length,
+              dueNow: cards.filter((c) => c.due <= now).length,
+              masteredCount: cards.filter((c) => c.stability >= 21).length,
+              accuracyLast7Days: 1.0,
+            });
+          }
+        }
+        return nextMap;
+      });
+    }
 
     const handleAuth = (e: CustomEvent) => setUser(e.detail as User);
     window.addEventListener('cadence_auth_updated', handleAuth as EventListener);

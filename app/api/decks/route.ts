@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma, ensureDbReady } from '@/lib/db';
 import type { Deck } from '@/types';
 
 function mapDeck(d: { id: string; title: string; sourceType: string; isArchived?: boolean; createdAt: Date }): Deck {
@@ -18,6 +18,7 @@ function mapDeck(d: { id: string; title: string; sourceType: string; isArchived?
  */
 export async function GET() {
   try {
+    await ensureDbReady();
     const decks = await prisma.deck.findMany({
       orderBy: { createdAt: 'desc' },
     });
@@ -35,10 +36,11 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
+    await ensureDbReady();
     const body = await request.json().catch(() => null);
 
     if (!body || typeof body.title !== 'string' || body.title.trim() === '') {
-      return NextResponse.json({ error: 'title is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Deck title is required' }, { status: 400 });
     }
 
     const title = body.title.trim();
@@ -55,6 +57,10 @@ export async function POST(request: Request) {
     return NextResponse.json(mapDeck(deck), { status: 201 });
   } catch (error) {
     console.error('Error creating deck:', error);
-    return NextResponse.json({ error: 'Failed to create deck' }, { status: 500 });
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: `Failed to create deck: ${detail}` },
+      { status: 500 }
+    );
   }
 }
