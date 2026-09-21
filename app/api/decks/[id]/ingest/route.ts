@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma, ensureDbReady } from '@/lib/db';
 import { parseContent, parsePdf, parseImage } from '@/lib/ai/parse-content';
 
+export const maxDuration = 60;
+
 interface RouteContext {
   params: Promise<{ id: string }>;
 }

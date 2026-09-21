@@ -20,6 +20,10 @@ export default function NewDeckPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<{ checked: boolean; configured: boolean; model?: string }>({
+    checked: false,
+    configured: true,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,6 +34,19 @@ export default function NewDeckPage() {
       return;
     }
     setUser(currentUser);
+
+    fetch('/api/status')
+      .then((res) => res.json())
+      .then((data) => {
+        setAiStatus({
+          checked: true,
+          configured: Boolean(data.aiConfigured),
+          model: data.model,
+        });
+      })
+      .catch(() => {
+        setAiStatus({ checked: true, configured: true });
+      });
   }, [router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,6 +143,18 @@ export default function NewDeckPage() {
                 Provide notes in any format. Cadence synthesizes an active recall queue automatically.
               </p>
             </div>
+
+            {aiStatus.checked && !aiStatus.configured && (
+              <div className="p-4 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[13px] flex flex-col gap-2">
+                <div className="flex items-center gap-2 font-bold">
+                  <span>⚠️</span>
+                  <span>GEMINI_API_KEY Not Detected</span>
+                </div>
+                <p className="text-[12px] leading-relaxed opacity-95">
+                  Your Vercel environment does not have a <code>GEMINI_API_KEY</code> configured yet. Add <code>GEMINI_API_KEY</code> in your <strong>Vercel Dashboard &rarr; Project Settings &rarr; Environment Variables</strong>, then redeploy to enable AI card synthesis.
+                </p>
+              </div>
+            )}
 
             {errorMessage && (
               <div

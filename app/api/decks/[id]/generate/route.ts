@@ -6,6 +6,8 @@ import type { Card } from '@/types';
 
 import crypto from 'crypto';
 
+export const maxDuration = 60;
+
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
@@ -63,8 +65,8 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'chunks array is required' }, { status: 400 });
     }
 
-    // Cap chunks per generation to avoid browser HTTP timeouts (default 8 chunks = ~35 cards in ~15-20s)
-    const MAX_CHUNKS = parseInt(process.env.MAX_CHUNKS_PER_DECK ?? '8', 10);
+    // Cap chunks per generation to avoid browser HTTP timeouts (default 4 chunks = ~16-20 cards in ~6-8s)
+    const MAX_CHUNKS = parseInt(process.env.MAX_CHUNKS_PER_DECK ?? '4', 10);
     if (chunks.length > MAX_CHUNKS) {
       console.log(
         `[generate] Document has ${chunks.length} chunks. Capping to top ${MAX_CHUNKS} chunks for fast generation.`
