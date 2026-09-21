@@ -37,7 +37,7 @@ export default function ReviewSessionPage() {
     ? ASSESSMENT_CONFIGS.find((a) => a.id === assessmentId) || null
     : null;
 
-  const isExam = assessmentId === 'comprehensive_exam';
+  const isExam = assessmentId === 'comprehensive_exam' || assessmentId === 'exam-35';
 
   const [deckTitle, setDeckTitle] = useState<string>('Deck');
   const [mode, setMode] = useState<ReviewMode>(initialMode);
@@ -416,15 +416,17 @@ export default function ReviewSessionPage() {
                 onClick={handleFlip}
                 className="text-[13px] text-[var(--color-text)] hover:opacity-80"
               >
-                Reveal Answer (or press Space) →
+                {selectedMcqOption !== null
+                  ? 'Check Choice & Reveal (or press Space) →'
+                  : 'Reveal Answer (or press Space) →'}
               </Button>
             </div>
           ) : (
-            /* Post-reveal: Rating Buttons (Again / Hard / Good / Easy) */
+            /* Post-reveal: Rating Buttons or Assessment Next */
             <div className="w-full animate-count-up space-y-2.5">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
-                  Rate difficulty (or swipe)
+                  {assessmentConfig ? 'Question Evaluation' : 'Rate difficulty (or swipe)'}
                 </span>
                 <button
                   type="button"
@@ -434,7 +436,28 @@ export default function ReviewSessionPage() {
                   <span>💡 Explain Rationale (AI)</span>
                 </button>
               </div>
-              <RatingButtons onRate={handleRate} />
+              {assessmentConfig && selectedMcqOption !== null ? (
+                <div className="space-y-2">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => {
+                      const currentCard = cards[currentIndex];
+                      const chosen = currentCard?.options?.[selectedMcqOption] || '';
+                      const isCorrect = chosen.trim().toLowerCase() === currentCard.back.trim().toLowerCase();
+                      handleRate(isCorrect ? 'good' : 'again');
+                    }}
+                    className="w-full text-[14px] font-bold py-2.5 shadow-sm !bg-[var(--color-text)] !text-[var(--color-bg)]"
+                  >
+                    Next Question →
+                  </Button>
+                  <div className="pt-1">
+                    <RatingButtons onRate={handleRate} />
+                  </div>
+                </div>
+              ) : (
+                <RatingButtons onRate={handleRate} />
+              )}
             </div>
           )}
         </div>

@@ -128,16 +128,29 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-[var(--color-border)] text-[12px]">
+          <span className="text-[var(--color-text-secondary)]">
+            Every quiz and exam is standardized on 100% Multiple Choice questions.
+          </span>
+          <Link
+            href={`/decks/${deckId}/reviewer`}
+            className="inline-flex items-center gap-1 font-semibold text-[var(--color-text)] hover:underline"
+          >
+            <span>📄 Download / Print Reviewer PDF</span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Tier 1: Foundational Quizzes */}
+      {/* Tier 1: Foundational Quizzes (4 Short Quizzes) */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            1. Foundational Quizzes
+            1. Foundational Quizzes (4 Short Quizzes)
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (Concepts & Mechanisms)
+            (MCQ Concepts &amp; Mechanisms)
           </span>
         </div>
         <div className="space-y-2">
@@ -145,14 +158,14 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
         </div>
       </section>
 
-      {/* Tier 2: Synthesis Long Quizzes */}
+      {/* Tier 2: Synthesis Long Quizzes (2 Long Quizzes) */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            2. Comprehensive Long Quizzes
+            2. Comprehensive Long Quizzes (2 Long Quizzes)
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (Multi-Concept Synthesis)
+            (MCQ Multi-Concept Synthesis)
           </span>
         </div>
         <div className="space-y-2">
@@ -160,14 +173,14 @@ export default function DeckAssessmentsList({ deckId, totalCards }: Props) {
         </div>
       </section>
 
-      {/* Tier 3: Final Comprehensive Exam */}
+      {/* Tier 3: Final Comprehensive Exam (1 Exam) */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold text-[var(--color-text)] uppercase tracking-wider">
-            3. Comprehensive Exam
+            3. Comprehensive Examination (1 Final Exam)
           </span>
           <span className="text-[12px] text-[var(--color-text-secondary)]">
-            (Full Syllabus Simulation)
+            (Full 35-Item Simulation)
           </span>
         </div>
         <div className="space-y-2">

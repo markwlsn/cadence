@@ -81,7 +81,13 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
             deckTitle={deck.title}
             isArchived={Boolean(deck.isArchived)}
           />
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Link href={`/decks/${deck.id}/reviewer`} className="flex-1 sm:flex-initial">
+              <Button variant="secondary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px] flex items-center justify-center gap-1.5">
+                <span>📄</span>
+                <span>Reviewer PDF</span>
+              </Button>
+            </Link>
             <Link href={`/decks/${deck.id}/review?mode=cram`} className="flex-1 sm:flex-initial">
               <Button variant="secondary" size="md" className="w-full sm:w-auto text-[13px] sm:text-[14px]">
                 Cram All ({cardList.length > 0 ? cardList.length : stats.totalCards})
@@ -160,15 +166,24 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
         <div className="pt-3 border-t border-[var(--color-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]">
           <span className="text-[var(--color-text-secondary)]">
-            Need an official evaluation and study prescription?
+            Need an official evaluation or offline study guide?
           </span>
-          <Link
-            href={`/decks/${deck.id}/diagnostic`}
-            className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
-          >
-            <span>View Full Diagnostic Report (Print / PDF)</span>
-            <span aria-hidden="true">&rarr;</span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/decks/${deck.id}/reviewer`}
+              className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
+            >
+              <span>📄 Printable Reviewer PDF</span>
+            </Link>
+            <span className="text-[var(--color-border)]">•</span>
+            <Link
+              href={`/decks/${deck.id}/diagnostic`}
+              className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)] hover:underline"
+            >
+              <span>Diagnostic Report</span>
+              <span aria-hidden="true">&rarr;</span>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -189,7 +204,7 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
         <span className="text-[13px] text-[var(--color-text-secondary)] font-medium">
           {activeTab === 'curriculum'
-            ? 'Structured sequence: 3 Quizzes, 2 Long Quizzes, 1 Comprehensive Exam'
+            ? 'Structured sequence: 4 Short Quizzes, 2 Long Quizzes, 1 Comprehensive Exam'
             : 'Pre-quiz synthesis: searchable key definitions and core mechanisms'}
         </span>
       </div>

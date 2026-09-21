@@ -1,4 +1,4 @@
-import type { AssessmentProgress } from './assessments';
+import { type AssessmentProgress, ASSESSMENT_CONFIGS } from './assessments';
 
 export interface ExamReadinessResult {
   score: number; // 0 - 100
@@ -25,7 +25,7 @@ export function calculateExamReadiness(
   masteredCount: number
 ): ExamReadinessResult {
   const assessmentKeys = Object.keys(progressMap);
-  const totalAssessments = 6; // 3 Quizzes, 2 Long Quizzes, 1 Exam
+  const totalAssessments = Math.max(ASSESSMENT_CONFIGS.length, 1); // 4 Quizzes, 2 Long Quizzes, 1 Exam
 
   // 1. Curriculum completion
   const completedAssessments = assessmentKeys.filter(

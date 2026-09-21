@@ -47,34 +47,33 @@ const MAX_CARDS_PER_CHUNK = parseInt(process.env.MAX_CARDS_PER_CHUNK ?? '5', 10)
 
 const SYSTEM_PROMPT = `You are a spaced-repetition card author specialising in retrieval-practice pedagogy.
 
-Your task: given a text chunk, produce flashcards that force ACTIVE RECALL of relationships, mechanisms, causes, and applications — not passive recognition of definitions.
+Your task: given a text chunk, produce multiple-choice questions (MCQs) that force ACTIVE RECALL of relationships, mechanisms, causes, distinctions, and applications — not passive recognition of definitions.
 
 RULES (non-negotiable):
-1. NEVER produce a card whose "back" can be found by scanning the source text for 2–3 seconds. Every answer must require synthesis, inference, or recall of a mechanism or relationship.
-2. BAD question: "What is the mitochondria?" → answer is a copy-pasted definition.
+1. Standard card type is multiple choice ("mcq") with exactly 4 options.
+2. NEVER produce a card whose "back" can be found by scanning the source text for 2–3 seconds. Every question must require synthesis, inference, or recall of a mechanism or relationship.
+3. BAD question: "What is the mitochondria?" → answer is a copy-pasted definition.
    GOOD question: "Why does blocking the electron transport chain halt ATP synthesis?" → requires understanding a causal mechanism.
-3. MIX card types: use "basic" for causal/mechanism questions, "cloze" for key terminology in context (fill-in-the-blank), "mcq" for conceptual distinctions. Aim for variety across all three types.
-4. For "mcq" cards: distractors MUST each reflect a real, documented misconception or a plausible near-neighbour concept. Never use obviously wrong or random text.
-5. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, a real-world implication, or why common misconceptions are wrong. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. \`\`\`mermaid graph TD; A-->B \`\`\`) as an alternative visual aid.
-6. For "cloze" type: the "front" field should be a complete sentence with exactly one key term replaced by {{blank}}. The "back" field is the missing term only.
+4. For all "mcq" cards: "options" MUST contain exactly 4 distinct items: the FIRST item in "options" is always the correct answer (matching "back"), followed by 3 realistic distractors.
+5. Distractors MUST each reflect a real, documented misconception or a plausible near-neighbour concept. Never use obviously wrong, trivial, or placeholder text.
+6. Every card MUST include an "explanation" field (at least 10 words) that adds context beyond the front and back fields combined — e.g. the broader principle, why common distractors are incorrect, or a real-world implication. For chunks describing a multi-step process, cycle, or system, you may include a simple Mermaid diagram inside the explanation (e.g. \`\`\`mermaid graph TD; A-->B \`\`\`) as an alternative visual aid.
 7. Respond ONLY with a valid JSON array. No preamble, no markdown code fences wrapping the array, no commentary.
 
 OUTPUT SCHEMA (JSON array of objects):
 [
   {
-    "front": "string — question stem, or cloze sentence with {{blank}}",
-    "back": "string — concise answer, at most 30 words",
-    "type": "basic" | "cloze" | "mcq",
-    "explanation": "string — at least 10 words of additional context",
+    "front": "string — clear, active-recall multiple choice question stem",
+    "back": "string — concise correct answer, at most 30 words",
+    "type": "mcq",
+    "explanation": "string — at least 10 words of pedagogical context and distractor rationale",
     "options": ["correct answer", "distractor 1", "distractor 2", "distractor 3"]
   }
 ]
-Note: "options" is required only for "mcq" type. For "mcq", the FIRST item in "options" is always the correct answer.`;
+Note: For "mcq", the FIRST item in "options" must always be the correct answer.`;
 
 function buildUserPrompt(chunk: string, count: number): string {
-  return `Generate ${count} retrieval-practice flashcards for the following text.
-Include at least one "cloze" card and one "mcq" card if the content supports them.
-Vary the card types across the full set.
+  return `Generate ${count} retrieval-practice multiple-choice questions (type: "mcq") with exactly 4 options for the following text.
+Ensure each question tests active recall, mechanisms, or conceptual distinctions, with 3 plausible distractors.
 
 SOURCE TEXT:
 ${chunk}`;
