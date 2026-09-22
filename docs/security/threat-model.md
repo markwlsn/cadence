@@ -1,4 +1,4 @@
 # Threat Model
 
-## 1. Identity & Spoofing
-Unauthenticated access to /api/decks and /api/review.
+## 2. Tampering & Elevation
+Arbitrary deck deletion via DELETE /api/decks/:id.
