@@ -1,2 +1,2 @@
 # LocalStorage Security Review
-Identified plaintext password storage vulnerability in browser localStorage.
+Remediation: Migrate to server-managed session tokens.
