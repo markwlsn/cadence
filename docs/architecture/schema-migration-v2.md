@@ -1,2 +1,2 @@
-# Schema Migration
-Add userId foreign key to Deck with onDelete Cascade.
+# Schema Migration v2
+Verification of zero schema drift.
