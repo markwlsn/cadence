@@ -19,6 +19,7 @@ export type CardType = 'basic' | 'cloze' | 'mcq';
 
 export interface Deck {
   id: string;
+  userId?: string;
   title: string;
   sourceType: 'pdf' | 'text' | 'image';
   isArchived?: boolean;
