@@ -1,2 +1,2 @@
-# Relational Schema Migration v2
-Plan introduction of User entity and Deck.userId association.
+# Schema Migration
+Add userId foreign key to Deck with onDelete Cascade.
