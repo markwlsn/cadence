@@ -14,6 +14,7 @@ datasource db {
 
 model Deck {
   id         String           @id @default(cuid())
+  userId     String?          @default("guest")
   title      String
   sourceType String           // 'pdf' | 'text' | 'image'
   isArchived Boolean          @default(false)
