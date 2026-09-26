@@ -2,7 +2,8 @@
 
 /**
  * Authentication & Student Profile Service
- * Supports frictionless Guest mode, Registered accounts, and Profile personalization.
+ * Communicates with secure server-side auth API routes.
+ * Zero plaintext passwords in browser storage.
  */
 
 export interface User {
@@ -17,12 +18,18 @@ export interface User {
 }
 
 const USER_STORAGE_KEY = 'cadence_current_user';
-const USERS_DB_KEY = 'cadence_registered_users';
 
 export const AVATAR_OPTIONS = ['🎓', '🔬', '📚', '🚀', '💻', '💡', '🎨', '⚡', '🧬', '🏆'];
 
 function generateGuestId(): string {
   return 'guest_' + Math.random().toString(36).substring(2, 9);
+}
+
+// Clean up legacy plaintext database key if present
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('cadence_registered_users');
+  } catch {}
 }
 
 export function getCurrentUser(): User {
@@ -39,7 +46,6 @@ export function getCurrentUser(): User {
   try {
     const raw = localStorage.getItem(USER_STORAGE_KEY);
     if (!raw) {
-      // Default initial guest user
       const guestUser: User = {
         id: generateGuestId(),
         name: 'Guest Scholar',
@@ -69,39 +75,41 @@ export function saveCurrentUser(user: User): void {
 }
 
 /**
- * Log in with email and password
+ * Log in via secure server-side API with scrypt hashing verification.
  */
-export async function loginUser(email: string, pass: string): Promise<{ success: boolean; error?: string; user?: User }> {
+export async function loginUser(
+  email: string,
+  pass: string
+): Promise<{ success: boolean; error?: string; user?: User }> {
   if (!email || !pass) {
     return { success: false, error: 'Please provide both email and password.' };
   }
 
   try {
-    const rawUsers = localStorage.getItem(USERS_DB_KEY);
-    const users: Record<string, User & { passwordHash: string }> = rawUsers ? JSON.parse(rawUsers) : {};
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
 
-    const cleanEmail = email.toLowerCase().trim();
-    const existing = users[cleanEmail];
-
-    if (!existing) {
-      return { success: false, error: 'No account found with this email. Please register first.' };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Authentication error occurred.' };
     }
 
-    if (existing.passwordHash !== pass) {
-      return { success: false, error: 'Incorrect password. Please check your credentials.' };
+    if (data.user) {
+      saveCurrentUser(data.user);
+      return { success: true, user: data.user };
     }
 
-    const { passwordHash, ...safeUser } = existing;
-    saveCurrentUser(safeUser);
-
-    return { success: true, user: safeUser };
-  } catch (err) {
-    return { success: false, error: 'Authentication error occurred.' };
+    return { success: false, error: 'Unexpected login response.' };
+  } catch {
+    return { success: false, error: 'Network error during login. Please try again.' };
   }
 }
 
 /**
- * Register a new student account
+ * Register a new student account via secure server-side API.
  */
 export async function registerUser(
   name: string,
@@ -114,41 +122,34 @@ export async function registerUser(
   if (!name.trim()) return { success: false, error: 'Please enter your name.' };
   if (!email.trim() || !email.includes('@')) return { success: false, error: 'Please enter a valid email address.' };
   if (pass.length < 6) return { success: false, error: 'Password must be at least 6 characters long.' };
-  if (age !== undefined && !isNaN(age) && (age < 5 || age > 120)) {
-    return { success: false, error: 'Please enter a realistic age between 5 and 120.' };
-  }
 
   try {
-    const rawUsers = localStorage.getItem(USERS_DB_KEY);
-    const users: Record<string, User & { passwordHash: string }> = rawUsers ? JSON.parse(rawUsers) : {};
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: pass,
+        avatar: avatar || '🎓',
+        phone: phone?.trim(),
+        age: age ? Number(age) : undefined,
+      }),
+    });
 
-    const cleanEmail = email.toLowerCase().trim();
-    if (users[cleanEmail]) {
-      return { success: false, error: 'An account with this email already exists. Please log in.' };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data.error || 'Registration failed.' };
     }
 
-    const newUser: User = {
-      id: 'usr_' + Math.random().toString(36).substring(2, 9),
-      name: name.trim(),
-      email: cleanEmail,
-      phone: phone?.trim() || undefined,
-      age: age !== undefined && !isNaN(age) && age > 0 ? Number(age) : undefined,
-      avatar: avatar || '🎓',
-      isGuest: false,
-      createdAt: new Date().toISOString(),
-    };
+    if (data.user) {
+      saveCurrentUser(data.user);
+      return { success: true, user: data.user };
+    }
 
-    users[cleanEmail] = {
-      ...newUser,
-      passwordHash: pass,
-    };
-
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-    saveCurrentUser(newUser);
-
-    return { success: true, user: newUser };
-  } catch (err) {
     return { success: false, error: 'Failed to create account.' };
+  } catch {
+    return { success: false, error: 'Network error during registration.' };
   }
 }
 
@@ -178,8 +179,7 @@ export async function convertGuestToPermanent(
   phone?: string,
   age?: number
 ): Promise<{ success: boolean; error?: string; user?: User }> {
-  const res = await registerUser(name, email, pass, avatar, phone, age);
-  return res;
+  return await registerUser(name, email, pass, avatar, phone, age);
 }
 
 /**
@@ -192,33 +192,17 @@ export function updateUserProfile(updates: Partial<User>): User {
     ...updates,
   };
   saveCurrentUser(updated);
-
-  if (typeof window !== 'undefined' && !updated.isGuest && updated.email) {
-    try {
-      const rawUsers = localStorage.getItem(USERS_DB_KEY);
-      if (rawUsers) {
-        const users: Record<string, User & { passwordHash: string }> = JSON.parse(rawUsers);
-        const cleanEmail = updated.email.toLowerCase().trim();
-        if (users[cleanEmail]) {
-          users[cleanEmail] = {
-            ...users[cleanEmail],
-            ...updated,
-          };
-          localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-        }
-      }
-    } catch (e) {
-      console.error('Failed to sync profile updates to local database:', e);
-    }
-  }
-
   return updated;
 }
 
 /**
- * Sign out and reset to fresh guest session
+ * Sign out and clear server-side session cookie
  */
 export function logoutUser(): User {
+  if (typeof window !== 'undefined') {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  }
+
   const newGuest: User = {
     id: generateGuestId(),
     name: 'Guest Scholar',
@@ -232,22 +216,15 @@ export function logoutUser(): User {
 
 /**
  * Permanently delete the current user account and purge study data
- * Compliance: Apple App Store Review Guideline 5.1.1(v) & GDPR
+ * Compliance: Apple App Store Review Guideline 5.1.1(v), FERPA & GDPR
  */
-export function deleteAccountAndData(): User {
+export async function deleteAccountAndData(): Promise<User> {
   if (typeof window !== 'undefined') {
     try {
-      const current = getCurrentUser();
-      if (!current.isGuest && current.email) {
-        const rawDb = localStorage.getItem(USERS_DB_KEY);
-        if (rawDb) {
-          const users: Record<string, unknown> = JSON.parse(rawDb);
-          const cleanEmail = current.email.toLowerCase().trim();
-          delete users[cleanEmail];
-          localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-        }
-      }
+      await fetch('/api/user/delete', { method: 'POST' }).catch(() => {});
       localStorage.removeItem('cadence_user_stats');
+      localStorage.removeItem('cadence_custom_decks');
+      localStorage.removeItem('cadence_custom_cards');
       window.dispatchEvent(new CustomEvent('cadence_stats_updated', { detail: null }));
     } catch (e) {
       console.error('Error during account deletion:', e);
@@ -255,4 +232,3 @@ export function deleteAccountAndData(): User {
   }
   return logoutUser();
 }
-
