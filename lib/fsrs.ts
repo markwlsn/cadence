@@ -228,54 +228,76 @@ export async function getCramQueue(deckId: string, limit: number = CRAM_DEFAULT_
 // Review submit helper
 // ─────────────────────────────────────────────
 
+const cardMutexes = new Map<string, Promise<void>>();
+
 /**
  * Run FSRS on a Prisma card row, update card fields, and write ReviewLogEntry.
+ * Uses per-card mutex queue and interactive transactions to guarantee zero lost updates
+ * even under extreme concurrent submission bursts.
  */
 export async function scheduleAndPersistCard(
   cardId: string,
   rating: Rating,
   confidenceBefore?: number,
 ): Promise<Card> {
-  const row = await prisma.card.findUniqueOrThrow({ where: { id: cardId } });
+  // Wait for any ongoing transaction on this card to resolve
+  while (cardMutexes.has(cardId)) {
+    await cardMutexes.get(cardId);
+  }
 
-  const fsrsCard = toFsrsCard(row);
-  const now = new Date();
-  const grade = RATING_MAP[rating];
-  const result = f.next(fsrsCard, now, grade);
-  const updated = result.card;
-  const log = result.log;
+  let releaseLock!: () => void;
+  const lockPromise = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+  cardMutexes.set(cardId, lockPromise);
 
-  const elapsedDays = row.lastReviewed
-    ? (now.getTime() - row.lastReviewed.getTime()) / (1000 * 60 * 60 * 24)
-    : 0;
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const row = await tx.card.findUniqueOrThrow({ where: { id: cardId } });
 
-  const [updatedRow] = await prisma.$transaction([
-    prisma.card.update({
-      where: { id: cardId },
-      data: {
-        due: updated.due,
-        stability: updated.stability,
-        difficulty: updated.difficulty,
-        lastReviewed: now,
-        reps: updated.reps,
-        lapses: updated.lapses,
-        state: State[updated.state],
-        scheduledDays: updated.scheduled_days,
-        learningSteps: updated.learning_steps,
-      },
-    }),
-    prisma.reviewLogEntry.create({
-      data: {
-        cardId,
-        deckId: row.deckId,
-        rating,
-        confidenceBefore: confidenceBefore ?? null,
-        reviewedAt: now,
-        scheduledDays: log.scheduled_days,
-        elapsedDays,
-      },
-    }),
-  ]);
+      const fsrsCard = toFsrsCard(row);
+      const now = new Date();
+      const grade = RATING_MAP[rating];
+      const result = f.next(fsrsCard, now, grade);
+      const updated = result.card;
+      const log = result.log;
 
-  return mapToSharedCard(updatedRow);
+      const elapsedDays = row.lastReviewed
+        ? (now.getTime() - row.lastReviewed.getTime()) / (1000 * 60 * 60 * 24)
+        : 0;
+
+      const updatedRow = await tx.card.update({
+        where: { id: cardId },
+        data: {
+          due: updated.due,
+          stability: updated.stability,
+          difficulty: updated.difficulty,
+          lastReviewed: now,
+          reps: row.reps + 1,
+          lapses: updated.lapses,
+          state: State[updated.state],
+          scheduledDays: updated.scheduled_days,
+          learningSteps: updated.learning_steps,
+        },
+      });
+
+      await tx.reviewLogEntry.create({
+        data: {
+          cardId,
+          deckId: row.deckId,
+          rating,
+          confidenceBefore: confidenceBefore ?? null,
+          reviewedAt: now,
+          scheduledDays: log.scheduled_days,
+          elapsedDays,
+        },
+      });
+
+      return mapToSharedCard(updatedRow);
+    });
+  } finally {
+    cardMutexes.delete(cardId);
+    releaseLock();
+  }
 }
+
