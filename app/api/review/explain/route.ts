@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateTextWithAI, isAIConfigured } from '@/lib/ai/client';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export interface DistractorBreakdown {
   option: string;
@@ -54,6 +55,14 @@ RULES:
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
+    const ip = getClientIp(req);
+    const rateCheck = checkRateLimit(`explain:${ip}`, 60, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many explanation requests. Please wait ${rateCheck.retryAfterSeconds}s.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSeconds) } }
+      );
+    }
     const body = (await req.json()) as ExplainRequest;
     const { question, chosenAnswer, correctAnswer, explanation, cardType, options } = body;
 
