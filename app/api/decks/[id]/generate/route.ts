@@ -3,6 +3,7 @@ import { prisma, ensureDbReady } from '@/lib/db';
 import { generateCards, generateFallbackCardsForChunk } from '@/lib/ai/generate-cards';
 import { mapToSharedCard } from '@/lib/fsrs';
 import { cleanOptionDisplay, cleanQuestionDisplay } from '@/lib/assessments';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import type { Card } from '@/types';
 
 import crypto from 'crypto';
@@ -46,6 +47,14 @@ function isValidCardShape(c: unknown): c is {
 export async function POST(request: Request, context: RouteContext) {
   let deckId = 'deck-custom';
   try {
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`generate:${ip}`, 20, 60000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many card generation requests. Please wait ${rateCheck.retryAfterSeconds}s.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSeconds) } }
+      );
+    }
     const routeParams = await context.params;
     deckId = routeParams.id;
 
