@@ -73,8 +73,22 @@ export async function ensureDbReady(): Promise<void> {
       const dbUrl = resolveDatabaseUrl();
       if (!dbUrl.startsWith('libsql://') && !dbUrl.startsWith('postgres') && !dbUrl.startsWith('mysql')) {
         await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS User (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            passwordHash TEXT NOT NULL,
+            avatar TEXT NOT NULL DEFAULT '🎓',
+            phone TEXT,
+            age INTEGER,
+            createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        await prisma.$executeRawUnsafe(`
           CREATE TABLE IF NOT EXISTS Deck (
             id TEXT PRIMARY KEY,
+            userId TEXT DEFAULT 'guest',
             title TEXT NOT NULL,
             sourceType TEXT NOT NULL,
             isArchived BOOLEAN NOT NULL DEFAULT 0,
@@ -82,6 +96,15 @@ export async function ensureDbReady(): Promise<void> {
             updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
           );
         `);
+        try {
+          const deckCols = await prisma.$queryRawUnsafe<Array<{ name: string }>>(`PRAGMA table_info(Deck)`);
+          const hasUserId = deckCols.some((c) => c.name === 'userId');
+          if (!hasUserId) {
+            await prisma.$executeRawUnsafe(`ALTER TABLE Deck ADD COLUMN userId TEXT DEFAULT 'guest';`);
+          }
+        } catch {
+          // Table or column initialization fallback
+        }
         await prisma.$executeRawUnsafe(`
           CREATE TABLE IF NOT EXISTS Card (
             id TEXT PRIMARY KEY,
