@@ -76,6 +76,7 @@ export default function ReviewSessionPage() {
   const [selectedMcqOption, setSelectedMcqOption] = useState<number | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
   const [isRationaleOpen, setIsRationaleOpen] = useState(false);
+  const [suggestedRating, setSuggestedRating] = useState<Rating | null>(null);
 
   // Session timer effect (stopwatch)
   useEffect(() => {
@@ -346,6 +347,7 @@ export default function ReviewSessionPage() {
       setIsRationaleOpen(false);
       setQuestionTimeLeft(15);
       setIsTimedOut(false);
+      setSuggestedRating(null);
     }
   };
 
@@ -541,6 +543,7 @@ export default function ReviewSessionPage() {
                     setIsRationaleOpen(false);
                     setQuestionTimeLeft(15);
                     setIsTimedOut(false);
+                    setSuggestedRating(null);
                   }}
                   className={`w-6 h-6 rounded flex items-center justify-center shrink-0 font-medium transition-all ${
                     isCurrent
@@ -571,6 +574,7 @@ export default function ReviewSessionPage() {
             onSwipe={handleRate}
             selectedMcqOption={selectedMcqOption}
             onSelectMcqOption={setSelectedMcqOption}
+            onSuggestRating={setSuggestedRating}
           />
         </div>
 
@@ -632,11 +636,11 @@ export default function ReviewSessionPage() {
                     Next Question →
                   </Button>
                   <div className="pt-1">
-                    <RatingButtons onRate={handleRate} />
+                    <RatingButtons onRate={handleRate} suggestedRating={suggestedRating} />
                   </div>
                 </div>
               ) : (
-                <RatingButtons onRate={handleRate} />
+                <RatingButtons onRate={handleRate} suggestedRating={suggestedRating} />
               )}
             </div>
           )}

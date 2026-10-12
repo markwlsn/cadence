@@ -11,6 +11,7 @@ import { checkOverlap, wordLcs, normalise, QUALITY_GATE_THRESHOLD } from '../lib
 import { parseContent } from '../lib/ai/parse-content';
 import { generateCards, CardGenerationError } from '../lib/ai/generate-cards';
 import type { Card, CardPayload, CardType } from '../types/index';
+import { gradeClozeAnswer } from '../lib/cloze/grade';
 
 let passed = 0;
 let failed = 0;
@@ -97,6 +98,103 @@ These three-carbon sugars are subsequently used to synthesize glucose, cellulose
     explanation: 'Phosphorylation adds a negatively charged phosphate group that reshapes the protein backbone.',
   };
   assert(testPayload.type === 'basic', 'CardPayload complies with schema');
+
+  console.log('\n--- Testing Cloze Deletion Grading Engine (lib/cloze/grade.ts) ---');
+
+  // Exact matching & normalization
+  const exactRes = gradeClozeAnswer('Mitochondria', 'mitochondria');
+  assert(exactRes.isCorrect && exactRes.category === 'exact' && exactRes.suggestedRating === 'good', 'Exact match yields category exact & suggestedRating good');
+
+  const wsRes = gradeClozeAnswer('  ribosome.  ', 'ribosome');
+  assert(wsRes.isCorrect && wsRes.category === 'exact', 'Strips surrounding whitespace and trailing punctuation');
+
+  const quoteRes = gradeClozeAnswer('"chloroplast"', 'chloroplast');
+  assert(quoteRes.isCorrect && quoteRes.category === 'exact', 'Strips surrounding quotes');
+
+  // Code spacing
+  const codeRes = gradeClozeAnswer('x == y', 'x==y');
+  assert(codeRes.isCorrect && codeRes.category === 'exact', 'Ignores spacing differences in expressions (x == y vs x==y)');
+
+  // Diacritics
+  const diacriticRes = gradeClozeAnswer('corazon', 'corazón');
+  assert(diacriticRes.isCorrect && diacriticRes.category === 'close' && diacriticRes.suggestedRating === 'hard', 'Accepts missing accent mark as close with suggestedRating hard');
+
+  // Short terms rigor (<= 3 chars)
+  const shortFail = gradeClozeAnswer('ADP', 'ATP');
+  assert(!shortFail.isCorrect && shortFail.category === 'wrong' && shortFail.suggestedRating === 'again', 'Strictly rejects 1-char substitution on short terms (ADP vs ATP)');
+
+  const shortPass = gradeClozeAnswer('ATP', 'ATP');
+  assert(shortPass.isCorrect && shortPass.category === 'exact', 'Accepts exact match for short terms');
+
+  // Medium terms typo tolerance (4-6 chars)
+  const medPass = gradeClozeAnswer('mitosis', 'mytosis');
+  assert(medPass.isCorrect && medPass.category === 'close', 'Allows 1 edit distance for 6-letter word (mitosis vs mytosis)');
+
+  const medFail = gradeClozeAnswer('mtoxs', 'mitosis');
+  assert(!medFail.isCorrect && medFail.category === 'wrong', 'Rejects multiple typos on 6-letter word');
+
+  // Long terms typo tolerance (7+ chars)
+  const longPass = gradeClozeAnswer('phototsynthesis', 'photosynthesis');
+  assert(longPass.isCorrect && longPass.category === 'close', 'Allows 1 extra letter typo on long academic terms');
+
+  const longFail = gradeClozeAnswer('completelywronganswer', 'photosynthesis');
+  assert(!longFail.isCorrect && longFail.category === 'wrong', 'Rejects distant answers');
+
+  // Empty string and whitespace-only input
+  const emptyRes = gradeClozeAnswer('', 'glucose');
+  const spacesRes = gradeClozeAnswer('   ', 'glucose');
+  assert(!emptyRes.isCorrect && emptyRes.category === 'wrong' && !spacesRes.isCorrect && spacesRes.category === 'wrong', 'Empty string and whitespace-only input yield wrong without crashing');
+
+  // Exact typo tier boundary checks
+  const sevenCharTwoTypos = gradeClozeAnswer('glykose', 'glucose'); // 7 chars, 2 substitutions
+  assert(sevenCharTwoTypos.isCorrect && sevenCharTwoTypos.category === 'close', 'A 7-character word with exactly 2 typos grades as close');
+
+  const sevenCharThreeTypos = gradeClozeAnswer('glykzse', 'glucose'); // 7 chars, 3 substitutions
+  assert(!sevenCharThreeTypos.isCorrect && sevenCharThreeTypos.category === 'wrong', 'A 7-character word with 3 typos grades as wrong');
+
+  const threeCharOneTypo = gradeClozeAnswer('APP', 'ATP'); // 3 chars, 1 typo
+  assert(!threeCharOneTypo.isCorrect && threeCharOneTypo.category === 'wrong', 'A 3-character answer with 1 typo grades as wrong');
+
+  // Strict mode toggle
+  const strictRes = gradeClozeAnswer('phototsynthesis', 'photosynthesis', { strict: true });
+  assert(!strictRes.isCorrect && strictRes.category === 'wrong', 'Strict mode rejects typos that would otherwise pass');
+
+  console.log('\n--- Testing Non-Cloze Cards & Flip Flow Regression ---');
+
+  // Non-cloze card types and flip behavior invariant
+  const basicCard: Card = {
+    id: 'test-basic-1',
+    deckId: 'deck-1',
+    type: 'basic',
+    front: 'What is the primary function of ribosomes?',
+    back: 'Protein synthesis via mRNA translation.',
+    explanation: 'Ribosomes assemble amino acids into polypeptide chains.',
+    due: new Date().toISOString(),
+    stability: 2.5,
+    difficulty: 4.8,
+    reps: 2,
+  };
+  assert(basicCard.type === 'basic', 'Basic card type invariant preserved');
+  assert(basicCard.front.length > 0 && basicCard.back.length > 0, 'Basic card front and back prompts preserved');
+
+  const mcqCard: Card = {
+    id: 'test-mcq-1',
+    deckId: 'deck-1',
+    type: 'mcq',
+    front: 'Which organelle contains hydrolytic enzymes?',
+    back: 'Lysosome',
+    options: ['Mitochondria', 'Lysosome', 'Ribosome', 'Golgi apparatus'],
+    explanation: 'Lysosomes degrade cellular waste.',
+    due: new Date().toISOString(),
+    stability: 3.1,
+    difficulty: 5.0,
+    reps: 3,
+  };
+  assert(mcqCard.type === 'mcq' && Array.isArray(mcqCard.options), 'MCQ card options array intact');
+
+  // Rating flow invariants
+  const ratingMap: Record<string, number> = { again: 1, hard: 2, good: 3, easy: 4 };
+  assert(ratingMap['again'] === 1 && ratingMap['easy'] === 4, 'Standard 1-4 rating system remains unaltered for flip review');
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import type { Card as CardType } from '@/types';
+import type { Card as CardType, Rating } from '@/types';
 import { Badge, Button } from '@/components/ui';
-import { evaluateStudentAnswer } from '@/lib/utils/levenshtein';
+import { gradeClozeAnswer, type ClozeMatchCategory, type ClozeDiffHighlight } from '@/lib/cloze/grade';
 import { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch } from '@/lib/assessments';
 
 export { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch };
@@ -14,6 +14,7 @@ interface FlashCardProps {
   onFlip: () => void;
   selectedMcqOption?: number | null;
   onSelectMcqOption?: (index: number) => void;
+  onSuggestRating?: (rating: Rating) => void;
 }
 
 interface ClozePart {
@@ -42,26 +43,9 @@ function cleanCodeText(text: string): string {
   return text.replace(/^```[a-zA-Z0-9_-]*\n?/, '').replace(/\n?```$/, '');
 }
 
-/** Normalize strings for comparing student answer with expected answer */
-function normalizeText(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/^["'`]|["'`]$/g, '')
-    .replace(/[.,;:!?]+$/, '')
-    .replace(/\s+/g, ' ');
-}
 
-/** Check if student cloze input matches expected answer (including code spacing tolerance) */
-function checkAnswerMatch(typed: string, expected: string): boolean {
-  const normTyped = normalizeText(typed);
-  const normExpected = normalizeText(expected);
-  if (!normTyped || !normExpected) return false;
-  if (normTyped === normExpected) return true;
-  // Code tolerance: ignoring spaces between operators/symbols
-  if (normTyped.replace(/\s+/g, '') === normExpected.replace(/\s+/g, '')) return true;
-  return false;
-}
+
+
 
 /** Parse front text and return cloze parts along with target answer */
 function parseCloze(front: string, back: string): { parts: ClozePart[]; expectedAnswer: string } {
@@ -147,12 +131,38 @@ export function FlashCard({
   onFlip,
   selectedMcqOption,
   onSelectMcqOption,
+  onSuggestRating,
 }: FlashCardProps) {
   // Cloze interactive states
   const [clozeInput, setClozeInput] = useState('');
-  const [clozeStatus, setClozeStatus] = useState<'idle' | 'correct' | 'incorrect'>('idle');
+  const [clozeStatus, setClozeStatus] = useState<'idle' | ClozeMatchCategory>('idle');
   const [clozeFeedback, setClozeFeedback] = useState<string>('');
+  const [clozeDiff, setClozeDiff] = useState<ClozeDiffHighlight | undefined>(undefined);
   const [showHint, setShowHint] = useState<boolean>(false);
+  const [isTypingModeEnabled, setIsTypingModeEnabled] = useState<boolean>(true);
+
+  // Load typing-mode preference from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cadence_cloze_typing_enabled');
+      if (stored !== null) {
+        setIsTypingModeEnabled(stored === 'true');
+      }
+    } catch {
+      // LocalStorage access fallback
+    }
+  }, []);
+
+  const toggleTypingMode = useCallback(() => {
+    setIsTypingModeEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cadence_cloze_typing_enabled', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   // Basic open question interactive answer box
   const [basicAnswer, setBasicAnswer] = useState('');
 
@@ -161,6 +171,7 @@ export function FlashCard({
     setClozeInput('');
     setClozeStatus('idle');
     setClozeFeedback('');
+    setClozeDiff(undefined);
     setShowHint(false);
     setBasicAnswer('');
   }, [card.id]);
@@ -170,19 +181,13 @@ export function FlashCard({
 
   const handleCheckCloze = useCallback(() => {
     if (!clozeInput.trim()) return;
-    const result = evaluateStudentAnswer(clozeInput, clozeData.expectedAnswer);
-    if (result.isMatch) {
-      setClozeStatus('correct');
-      if (result.matchType === 'typo') {
-        setClozeFeedback(`Almost! ${result.message || 'Minor typo'} — counted as correct!`);
-      } else {
-        setClozeFeedback('Spot on! Excellent active recall.');
-      }
-    } else {
-      setClozeStatus('incorrect');
-      setClozeFeedback('Not quite! Check the hint or try again.');
-    }
-  }, [clozeInput, clozeData.expectedAnswer]);
+    const result = gradeClozeAnswer(clozeInput, clozeData.expectedAnswer);
+    setClozeStatus(result.category);
+    setClozeFeedback(result.message);
+    setClozeDiff(result.diff);
+    // Suggest FSRS rating: exact -> Good, close -> Hard, wrong -> Again
+    onSuggestRating?.(result.suggestedRating);
+  }, [clozeInput, clozeData.expectedAnswer, onSuggestRating]);
 
   const handleSelectMcq = useCallback(
     (index: number) => {
@@ -311,9 +316,11 @@ export function FlashCard({
                               className={[
                                 'inline-block px-2.5 py-0.5 mx-1 font-mono text-[13px] sm:text-[14px] rounded border transition-all',
                                 'min-w-[110px] max-w-[280px] text-center focus:outline-none focus:ring-2 shadow-inner',
-                                clozeStatus === 'correct'
+                                clozeStatus === 'exact'
                                   ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/50'
-                                  : clozeStatus === 'incorrect'
+                                  : clozeStatus === 'close'
+                                  ? 'bg-amber-950/80 border-amber-500 text-amber-300 ring-2 ring-amber-500/50'
+                                  : clozeStatus === 'wrong'
                                   ? 'bg-rose-950/80 border-rose-500 text-rose-300 ring-2 ring-rose-500/50'
                                   : 'bg-[#2d2d30] border-[#007acc] text-[#9cdcfe] focus:ring-[#007acc]',
                               ].join(' ')}
@@ -350,9 +357,11 @@ export function FlashCard({
                             className={[
                               'inline-block px-3 py-1 mx-1.5 text-[16px] sm:text-[18px] font-semibold rounded-lg border-2 transition-all',
                               'min-w-[130px] max-w-[240px] text-center focus:outline-none focus:ring-2 shadow-sm',
-                              clozeStatus === 'correct'
+                              clozeStatus === 'exact'
                                 ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/30'
-                                : clozeStatus === 'incorrect'
+                                : clozeStatus === 'close'
+                                ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/30'
+                                : clozeStatus === 'wrong'
                                 ? 'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/30'
                                 : 'bg-[var(--color-surface)] border-[var(--color-border-strong)] text-[var(--color-text)] focus:border-[var(--color-text)] focus:ring-[var(--color-focus-ring)]',
                             ].join(' ')}
@@ -370,31 +379,56 @@ export function FlashCard({
                   onClick={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center justify-center gap-2 w-full flex-wrap">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={handleCheckCloze}
-                      className="px-4 text-[13px] font-semibold"
+                  {isTypingModeEnabled ? (
+                    <div className="flex items-center justify-center gap-2 w-full flex-wrap">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleCheckCloze}
+                        className="px-4 text-[13px] font-semibold"
+                      >
+                        Check Answer (↵)
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowHint((prev) => !prev)}
+                        className="text-[12px] px-3 font-medium"
+                      >
+                        💡 {showHint ? 'Hide Hint' : 'Hint'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onFlip}
+                        className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                      >
+                        Skip typing / just flip →
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2 w-full">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={onFlip}
+                        className="px-5 text-[13px] font-semibold"
+                      >
+                        Reveal Answer (or press Space) →
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Typing Mode Toggle */}
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-tertiary)] pt-0.5">
+                    <button
+                      type="button"
+                      onClick={toggleTypingMode}
+                      className="hover:text-[var(--color-text)] transition-colors underline decoration-dotted"
+                      title="Toggle active recall typing vs standard card flipping"
                     >
-                      Check Answer (↵)
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowHint((prev) => !prev)}
-                      className="text-[12px] px-3 font-medium"
-                    >
-                      💡 {showHint ? 'Hide Hint' : 'Hint'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onFlip}
-                      className="text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]"
-                    >
-                      Reveal Answer →
-                    </Button>
+                      Typing Recall: {isTypingModeEnabled ? 'Enabled' : 'Disabled (Direct Flip)'}
+                    </button>
                   </div>
 
                   {/* Hint Display */}
@@ -404,14 +438,51 @@ export function FlashCard({
                     </div>
                   )}
 
-                  {clozeStatus === 'correct' && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[13px] font-medium animate-count-up">
-                      <span>✓ {clozeFeedback || 'Correct! Great recall. Tap card to view explanation.'}</span>
+                  {/* ARIA Live Evaluation Announcements */}
+                  {clozeStatus === 'exact' && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[13px] font-medium animate-count-up"
+                    >
+                      <span>✓ {clozeFeedback || 'Spot on!'}</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 font-bold">
+                        Suggested: Good (3)
+                      </span>
                     </div>
                   )}
-                  {clozeStatus === 'incorrect' && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-[13px] font-medium animate-count-up">
-                      <span>✗ {clozeFeedback || 'Not quite. Try again or click Reveal Answer!'}</span>
+                  {clozeStatus === 'close' && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-800 dark:text-amber-200 text-[13px] font-medium animate-count-up"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>⚠️ {clozeFeedback}</span>
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-800 dark:text-amber-200 font-bold">
+                          Suggested: Hard (2)
+                        </span>
+                      </div>
+                      <div className="text-[12px] opacity-90">
+                        Correct Answer: <strong className="underline decoration-amber-500 underline-offset-2">{clozeData.expectedAnswer}</strong>
+                      </div>
+                    </div>
+                  )}
+                  {clozeStatus === 'wrong' && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-800 dark:text-rose-200 text-[13px] font-medium animate-count-up"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>✗ {clozeFeedback}</span>
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-500/25 text-rose-800 dark:text-rose-300 font-bold">
+                          Suggested: Again (1)
+                        </span>
+                      </div>
+                      <div className="text-[12px] opacity-90">
+                        Correct Answer: <strong>{clozeData.expectedAnswer}</strong>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -690,13 +761,19 @@ export function FlashCard({
                       </span>
                       <span
                         className={`font-semibold ${
-                          checkAnswerMatch(clozeInput, clozeData.expectedAnswer)
+                          clozeStatus === 'exact'
                             ? 'text-emerald-600 dark:text-emerald-400'
+                            : clozeStatus === 'close'
+                            ? 'text-amber-600 dark:text-amber-400'
                             : 'text-rose-600 dark:text-rose-400'
                         }`}
                       >
                         {clozeInput}{' '}
-                        {checkAnswerMatch(clozeInput, clozeData.expectedAnswer) ? '✓' : '✗'}
+                        {clozeStatus === 'exact'
+                          ? '✓ (Exact)'
+                          : clozeStatus === 'close'
+                          ? '≈ (Close)'
+                          : '✗ (Incorrect)'}
                       </span>
                     </div>
                     <div>
@@ -706,6 +783,11 @@ export function FlashCard({
                       <span className="font-semibold text-[var(--color-text)]">
                         {clozeData.expectedAnswer}
                       </span>
+                      {clozeStatus === 'close' && clozeDiff && (
+                        <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                          (Difference near character {clozeDiff.diffIndex + 1})
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}

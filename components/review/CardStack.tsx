@@ -12,6 +12,7 @@ interface CardStackProps {
   onSwipe: (rating: Rating) => void;
   selectedMcqOption?: number | null;
   onSelectMcqOption?: (index: number) => void;
+  onSuggestRating?: (rating: Rating) => void;
 }
 
 export function CardStack({
@@ -22,6 +23,7 @@ export function CardStack({
   onSwipe,
   selectedMcqOption,
   onSelectMcqOption,
+  onSuggestRating,
 }: CardStackProps) {
   const currentCard = cards[currentIndex];
   const nextCard = cards[currentIndex + 1];
@@ -127,6 +129,7 @@ export function CardStack({
           onFlip={onFlip}
           selectedMcqOption={selectedMcqOption}
           onSelectMcqOption={onSelectMcqOption}
+          onSuggestRating={onSuggestRating}
         />
       </div>
     </div>

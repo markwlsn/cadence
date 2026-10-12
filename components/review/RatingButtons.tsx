@@ -6,6 +6,7 @@ import type { Rating } from '@/types';
 interface RatingButtonsProps {
   onRate: (rating: Rating) => void;
   disabled?: boolean;
+  suggestedRating?: Rating | null;
 }
 
 const ratingConfigs: {
@@ -40,7 +41,7 @@ const ratingConfigs: {
   },
 ];
 
-export function RatingButtons({ onRate, disabled = false }: RatingButtonsProps) {
+export function RatingButtons({ onRate, disabled = false, suggestedRating = null }: RatingButtonsProps) {
   // Keyboard accessibility: 1, 2, 3, 4 map to Again, Hard, Good, Easy
   useEffect(() => {
     if (disabled) return;
@@ -63,24 +64,33 @@ export function RatingButtons({ onRate, disabled = false }: RatingButtonsProps) 
     <div className="flex items-center justify-center gap-2 sm:gap-3 w-full max-w-lg mx-auto">
       {ratingConfigs.map(({ rating, label, subtext, keyHint }) => {
         const isGood = rating === 'good';
+        const isSuggested = suggestedRating === rating;
         return (
           <button
             key={rating}
             type="button"
             disabled={disabled}
             onClick={() => onRate(rating)}
-            aria-label={`${label} (${subtext}) - Press ${keyHint}`}
+            aria-label={`${label} (${subtext})${isSuggested ? ' - Suggested based on your recall' : ''} - Press ${keyHint}`}
             className={[
-              'flex-1 flex flex-col items-center justify-center py-3 px-2',
+              'flex-1 flex flex-col items-center justify-center py-2.5 px-2 relative',
               'rounded-[var(--radius-md)] border select-none min-h-[64px]',
               'transition-all duration-[var(--duration-fast)] active:scale-95 cursor-pointer',
               'focus-visible:outline-2 focus-visible:outline-[var(--color-text)] focus-visible:outline-offset-2',
+              isSuggested
+                ? 'ring-2 ring-amber-500/80 dark:ring-amber-400 border-amber-500 shadow-md scale-[1.02]'
+                : '',
               isGood
                 ? 'bg-[var(--color-btn-primary-bg)] text-[var(--color-btn-primary-text)] border-[var(--color-btn-primary-bg)] hover:bg-[var(--color-btn-primary-hover)] shadow-[var(--shadow-sm)]'
                 : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-overlay)] shadow-[var(--shadow-sm)]',
               disabled ? 'opacity-50 cursor-not-allowed' : '',
-            ].join(' ')}
+            ].filter(Boolean).join(' ')}
           >
+            {isSuggested && (
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-amber-600 dark:text-amber-300 -mt-1 mb-0.5">
+                ★ Suggested
+              </span>
+            )}
             <span className="text-[16px] font-semibold tracking-tight">{label}</span>
             <div
               className={`flex items-center gap-1 mt-0.5 text-[12px] ${
