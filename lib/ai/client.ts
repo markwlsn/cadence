@@ -224,6 +224,185 @@ export async function generateTextWithAI(options: {
 }
 
 /**
+ * Generate a streaming text completion from either Gemini or Claude.
+ * Returns a standard Web ReadableStream<string> that yields text deltas.
+ */
+export async function streamTextWithAI(options: {
+  systemPrompt: string;
+  messages: ChatMessage[];
+  maxTokens?: number;
+  signal?: AbortSignal;
+}): Promise<ReadableStream<string>> {
+  const provider = getAIProvider();
+
+  if (provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+        'Please add your API key to .env.local.'
+      );
+    }
+
+    const preferredModel = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash';
+    const modelsToTry = [
+      ...new Set([
+        preferredModel,
+        'gemini-3.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3-flash-preview',
+      ]),
+    ];
+
+    let lastError: Error | null = null;
+
+    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+      const model = modelsToTry[mIdx];
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+        const contents = options.messages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        }));
+
+        const body: Record<string, unknown> = {
+          system_instruction: {
+            parts: [{ text: options.systemPrompt }],
+          },
+          contents,
+          generationConfig: {
+            maxOutputTokens: options.maxTokens ?? 2048,
+          },
+        };
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: options.signal,
+        });
+
+        if (!res.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errData = (await res.json().catch(() => ({}))) as any;
+          const errMsg = errData?.error?.message ?? res.statusText;
+          if (res.status === 429 || res.status === 503) {
+            if (mIdx < modelsToTry.length - 1) {
+              console.warn(
+                `[Gemini Stream] ${model} quota/rate limited (${res.status}). Cascading to fallback: ${modelsToTry[mIdx + 1]}...`
+              );
+              continue;
+            }
+          }
+          throw new Error(`Gemini stream error (${res.status}): ${errMsg}`);
+        }
+
+        if (!res.body) {
+          throw new Error('Gemini returned an empty response body stream.');
+        }
+
+        const responseBody = res.body;
+
+        return new ReadableStream<string>({
+          async start(controller) {
+            const reader = responseBody.getReader();
+            const decoder = new TextDecoder();
+            let sseBuffer = '';
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                sseBuffer += decoder.decode(value, { stream: true });
+                const lines = sseBuffer.split('\n');
+                sseBuffer = lines.pop() ?? '';
+
+                for (const line of lines) {
+                  const trimmed = line.trim();
+                  if (trimmed.startsWith('data:')) {
+                    const jsonStr = trimmed.slice(5).trim();
+                    if (!jsonStr) continue;
+                    try {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const parsed = JSON.parse(jsonStr) as any;
+                      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                      if (text) {
+                        controller.enqueue(text);
+                      }
+                    } catch {
+                      // Ignore malformed individual chunks
+                    }
+                  }
+                }
+              }
+              controller.close();
+            } catch (streamErr) {
+              controller.error(streamErr);
+            } finally {
+              reader.releaseLock();
+            }
+          },
+          cancel() {
+            responseBody.cancel().catch(() => {});
+          },
+        });
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (mIdx < modelsToTry.length - 1) {
+          continue;
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to start Gemini stream.');
+  }
+
+  // Anthropic Provider
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error(
+      '[Cadence] Neither GEMINI_API_KEY nor ANTHROPIC_API_KEY is configured. ' +
+      'Please add your API key to .env.local.'
+    );
+  }
+
+  const client = getAnthropic();
+  const anthropicStream = client.messages.stream(
+    {
+      model: GENERATION_MODEL,
+      max_tokens: options.maxTokens ?? 4096,
+      system: options.systemPrompt,
+      messages: options.messages,
+    },
+    { signal: options.signal }
+  );
+
+  return new ReadableStream<string>({
+    async start(controller) {
+      try {
+        for await (const chunk of anthropicStream) {
+          if (
+            chunk.type === 'content_block_delta' &&
+            chunk.delta.type === 'text_delta'
+          ) {
+            controller.enqueue(chunk.delta.text);
+          }
+        }
+        controller.close();
+      } catch (err) {
+        controller.error(err);
+      }
+    },
+    cancel() {
+      anthropicStream.abort();
+    },
+  });
+}
+
+
+/**
  * Transcribe an image using multimodal AI (Gemini or Claude Vision).
  */
 export async function transcribeImageWithAI(options: {

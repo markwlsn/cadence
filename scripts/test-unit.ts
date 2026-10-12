@@ -12,6 +12,7 @@ import { parseContent } from '../lib/ai/parse-content';
 import { generateCards, CardGenerationError } from '../lib/ai/generate-cards';
 import type { Card, CardPayload, CardType } from '../types/index';
 import { gradeClozeAnswer } from '../lib/cloze/grade';
+import { formatSSEEvent, createSSEParser, parseSSEEvents, parseStreamingRationale } from '../lib/ai/sse';
 
 let passed = 0;
 let failed = 0;
@@ -195,6 +196,61 @@ These three-carbon sugars are subsequently used to synthesize glucose, cellulose
   // Rating flow invariants
   const ratingMap: Record<string, number> = { again: 1, hard: 2, good: 3, easy: 4 };
   assert(ratingMap['again'] === 1 && ratingMap['easy'] === 4, 'Standard 1-4 rating system remains unaltered for flip review');
+
+  console.log('\n--- Testing SSE Formatting & Streaming Parser (lib/ai/sse.ts) ---');
+
+  // 1. Format SSE Events
+  const deltaFormatted = formatSSEEvent({ type: 'delta', text: 'Cognitive' });
+  assert(deltaFormatted === 'data: {"type":"delta","text":"Cognitive"}\n\n', 'formatSSEEvent formats delta event correctly');
+
+  const doneFormatted = formatSSEEvent({ type: 'done' });
+  assert(doneFormatted === 'data: {"type":"done"}\n\n', 'formatSSEEvent formats done event correctly');
+
+  // 2. Multiple events in a single chunk
+  const multiChunk = 'data: {"type":"delta","text":"Hello "}\n\ndata: {"type":"delta","text":"world!"}\n\n';
+  const multiParsed = parseSSEEvents(multiChunk);
+  assert(multiParsed.length === 2 && multiParsed[0].type === 'delta' && (multiParsed[0] as { text: string }).text === 'Hello ', 'Parses multiple events in a single chunk');
+  assert(multiParsed[1].type === 'delta' && (multiParsed[1] as { text: string }).text === 'world!', 'Second event in multi-chunk is intact');
+
+  // 3. Events split across chunks
+  const parser = createSSEParser();
+  const chunk1Events = parser.feed('data: {"type":"delta","text":"Incom');
+  assert(chunk1Events.length === 0, 'Incomplete event in first chunk produces 0 events');
+  const chunk2Events = parser.feed('plete sentence."}\n\n');
+  assert(chunk2Events.length === 1 && chunk2Events[0].type === 'delta' && (chunk2Events[0] as { text: string }).text === 'Incomplete sentence.', 'Reassembles event split across chunks');
+
+  // 4. Error event
+  const errorChunk = 'data: {"type":"error","message":"AI service rate limited"}\n\n';
+  const errorParsed = parseSSEEvents(errorChunk);
+  assert(errorParsed.length === 1 && errorParsed[0].type === 'error' && (errorParsed[0] as { message: string }).message === 'AI service rate limited', 'Parses error event correctly');
+
+  // 5. Empty chunks and whitespace chunks
+  const emptyParser = createSSEParser();
+  const resEmpty1 = emptyParser.feed('');
+  const resEmpty2 = emptyParser.feed('   \n\n   \n\n');
+  assert(resEmpty1.length === 0 && resEmpty2.length === 0, 'Empty and whitespace chunks yield 0 events without crashing');
+
+  // 6. Malformed JSON handling
+  const malformedChunk = 'data: {corrupted json\n\ndata: {"type":"done"}\n\n';
+  const malformedParsed = parseSSEEvents(malformedChunk);
+  assert(malformedParsed.length === 1 && malformedParsed[0].type === 'done', 'Skips malformed JSON gracefully and preserves subsequent valid events');
+
+  // 7. Parse 3-part streaming rationale sections
+  const sampleMarkdown = `### 1. Why The Correct Answer Is Right
+Active transport pumps ions against electrochemical gradient.
+
+### 2. Cognitive Trap & Distractor Analysis
+Students confuse passive diffusion with ATP-dependent transport.
+
+### 3. Anchor Takeaway
+Primary active transport always requires direct ATP hydrolysis.`;
+  const parsedSections = parseStreamingRationale(sampleMarkdown);
+  assert(
+    parsedSections.correctPrinciple.includes('Active transport pumps ions') &&
+    parsedSections.misconception.includes('Students confuse passive diffusion') &&
+    parsedSections.keyTakeaway.includes('Primary active transport always requires direct ATP hydrolysis'),
+    'parseStreamingRationale correctly isolates the 3 pedagogical sections'
+  );
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);

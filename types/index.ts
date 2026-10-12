@@ -78,3 +78,45 @@ export interface DeckStats {
   masteredCount: number;
   accuracyLast7Days: number;
 }
+
+/**
+ * Distractor breakdown for multiple-choice explanations.
+ */
+export interface DistractorBreakdown {
+  option: string;
+  isCorrect: boolean;
+  explanation: string;
+}
+
+/**
+ * Request payload for Socratic review explanation.
+ */
+export interface ExplainRequest {
+  question: string;
+  chosenAnswer?: string;
+  correctAnswer: string;
+  explanation?: string;
+  cardType?: string;
+  options?: string[];
+  stream?: boolean;
+}
+
+/**
+ * Non-streaming response payload for Socratic review explanation.
+ */
+export interface ExplainResponse {
+  misconception: string;
+  correctPrinciple: string;
+  keyTakeaway: string;
+  distractors: DistractorBreakdown[];
+  source: 'ai' | 'heuristic';
+}
+
+/**
+ * SSE Events for Streaming Socratic Rationale Tutor
+ */
+export type SSERationaleEvent =
+  | { type: 'delta'; text: string }
+  | { type: 'done' }
+  | { type: 'error'; message: string };
+
