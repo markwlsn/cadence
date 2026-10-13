@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma, ensureDbReady } from '@/lib/db';
 import { getAuthenticatedUser } from '@/lib/server-auth';
+import { validateExamDate } from '@/lib/exam-pacing';
 import type { Deck } from '@/types';
 
 interface RouteContext {
@@ -14,6 +15,7 @@ function mapDeck(d: {
   sourceType: string;
   isArchived?: boolean;
   createdAt: Date;
+  examDate?: Date | null;
 }): Deck {
   return {
     id: d.id,
@@ -22,6 +24,7 @@ function mapDeck(d: {
     sourceType: d.sourceType as Deck['sourceType'],
     isArchived: d.isArchived ?? false,
     createdAt: d.createdAt.toISOString(),
+    examDate: d.examDate ? d.examDate.toISOString() : null,
   };
 }
 
@@ -82,7 +85,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const body = await request.json().catch(() => ({}));
 
-    const dataToUpdate: { isArchived?: boolean; title?: string } = {};
+    const dataToUpdate: { isArchived?: boolean; title?: string; examDate?: Date | null } = {};
     if (typeof body.isArchived === 'boolean') {
       dataToUpdate.isArchived = body.isArchived;
     }
@@ -95,6 +98,13 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
       dataToUpdate.title = trimmed;
+    }
+    if ('examDate' in body) {
+      const validation = validateExamDate(body.examDate);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+      dataToUpdate.examDate = validation.date;
     }
 
     const updated = await prisma.deck.update({

@@ -15,6 +15,7 @@ import { gradeClozeAnswer, splitAlternatives } from '../lib/cloze/grade';
 import { formatSSEEvent, createSSEParser, parseSSEEvents, parseStreamingRationale } from '../lib/ai/sse';
 import { validateExplainBody, MAX_BODY_CHARS } from '../lib/ai/limits';
 import { getClientIp, checkRateLimit, pruneRateLimitStore, RATE_LIMIT_RETENTION_MS } from '../lib/rate-limit';
+import { validateExamDate, daysUntilExam, calculatePacing } from '../lib/exam-pacing';
 
 let passed = 0;
 let failed = 0;
@@ -464,6 +465,72 @@ Primary active transport always requires direct ATP hydrolysis.`;
   assert(regDiacritic.category === 'close', 'Regression: diacritic tolerance');
   const regCodeSpacing = gradeClozeAnswer('x==y', 'x == y');
   assert(regCodeSpacing.category === 'exact', 'Regression: code spacing tolerance');
+
+  console.log('\n--- Testing Exam Date Validation (validateExamDate) ---');
+  const vNull = validateExamDate(null);
+  assert(vNull.valid === true && vNull.date === null, 'validateExamDate: null clears');
+
+  const vIso = validateExamDate('2027-05-15', new Date('2026-10-13T00:00:00Z'));
+  assert(
+    vIso.valid === true && vIso.date instanceof Date && vIso.date.toISOString() === '2027-05-15T00:00:00.000Z',
+    'validateExamDate: valid ISO string accepted and stored as UTC midnight'
+  );
+
+  const vInvalidStr = validateExamDate('not-a-valid-date');
+  assert(vInvalidStr.valid === false && vInvalidStr.status === 400, 'validateExamDate: rejects invalid date string with 400');
+
+  const vNumber = validateExamDate(12345678);
+  assert(vNumber.valid === false && vNumber.status === 400, 'validateExamDate: rejects non-string number with 400');
+
+  const vPast = validateExamDate('2026-10-12', new Date('2026-10-13T12:00:00Z'));
+  assert(
+    vPast.valid === false && vPast.status === 400 && typeof vPast.error === 'string' && vPast.error.length > 0,
+    'validateExamDate: rejects past date with 400 and clear message'
+  );
+
+  const vToday = validateExamDate('2026-10-13', new Date('2026-10-13T12:00:00Z'));
+  assert(vToday.valid === true && vToday.date instanceof Date, 'validateExamDate: allows today as exam date');
+
+  const vFuture = validateExamDate('2030-01-01', new Date('2026-10-13T00:00:00Z'));
+  assert(vFuture.valid === false && vFuture.status === 400, 'validateExamDate: rejects dates more than 3 years in future with 400');
+
+  const vEmpty = validateExamDate('');
+  assert(vEmpty.valid === false && vEmpty.status === 400, 'validateExamDate: rejects empty string with 400');
+
+  console.log('\n--- Testing Days Until Exam (daysUntilExam) ---');
+  const dSame = daysUntilExam('2026-10-13', new Date('2026-10-13T10:00:00Z'), 0);
+  assert(dSame === 0, 'daysUntilExam: same day = 0');
+
+  const dTomorrow = daysUntilExam('2026-10-14', new Date('2026-10-13T10:00:00Z'), 0);
+  assert(dTomorrow === 1, 'daysUntilExam: tomorrow = 1');
+
+  const dYesterday = daysUntilExam('2026-10-12', new Date('2026-10-13T10:00:00Z'), 0);
+  assert(dYesterday === -1, 'daysUntilExam: yesterday = -1');
+
+  const dOffsetPlus480 = daysUntilExam('2026-10-14', '2026-10-13T20:00:00Z', 480);
+  assert(dOffsetPlus480 === 0, 'daysUntilExam: across timezone offset +480 (in UTC+8 it is already exam day = 0)');
+
+  const dOffsetMinus300 = daysUntilExam('2026-10-14', '2026-10-13T20:00:00Z', -300);
+  assert(dOffsetMinus300 === 1, 'daysUntilExam: across timezone offset -300 (in UTC-5 it is still tomorrow = 1)');
+
+  const dMonth = daysUntilExam('2026-11-01', new Date('2026-10-31T12:00:00Z'), 0);
+  assert(dMonth === 1, 'daysUntilExam: across month boundary (Oct 31 to Nov 1 = 1)');
+
+  const dLeap1 = daysUntilExam('2024-02-29', new Date('2024-02-28T12:00:00Z'), 0);
+  assert(dLeap1 === 1, 'daysUntilExam: across leap day (Feb 28 to Feb 29 = 1)');
+  const dLeap2 = daysUntilExam('2024-03-01', new Date('2024-02-28T12:00:00Z'), 0);
+  assert(dLeap2 === 2, 'daysUntilExam: across leap day (Feb 28 to Mar 1 in leap year = 2)');
+
+  console.log('\n--- Testing Pacing Computation Regression ---');
+  const pNoDate = calculatePacing(null, 50, 10, 2);
+  assert(
+    pNoDate.isSet === false &&
+    pNoDate.daysRemaining === 0 &&
+    pNoDate.unmasteredCards === 40 &&
+    pNoDate.remainingQuizzes === 5 &&
+    pNoDate.statusLabel === 'No Exam Date',
+    'Pacing regression: null exam date computation intact'
+  );
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);

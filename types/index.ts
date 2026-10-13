@@ -24,6 +24,7 @@ export interface Deck {
   sourceType: 'pdf' | 'text' | 'image';
   isArchived?: boolean;
   createdAt: string;
+  examDate?: string | null;
 }
 
 export interface Card {

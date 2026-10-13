@@ -28,9 +28,11 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
   const [readiness, setReadiness] = useState<ExamReadinessResult | null>(null);
   const [mounted, setMounted] = useState(false);
   const [cardList, setCardList] = useState<Card[]>(cards);
-  const [examDate, setExamDate] = useState<string | null>(null);
+  const [examDate, setExamDate] = useState<string | null>(deck.examDate ? deck.examDate.split('T')[0] : null);
   const [pacing, setPacing] = useState<ExamPacingResult | null>(null);
   const [isEditingDate, setIsEditingDate] = useState(false);
+  const [isSavingDate, setIsSavingDate] = useState(false);
+  const [dateSaveError, setDateSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -41,8 +43,34 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
     }
 
     const totalCardCount = cards.length > 0 ? cards.length : localCards.length || stats.totalCards;
-    const storedDate = getDeckExamDate(deck.id);
-    setExamDate(storedDate);
+    
+    // Priority: server value first
+    let activeDate = deck.examDate ? deck.examDate.split('T')[0] : null;
+
+    // One-time migration: if server has no date but localStorage has cadence_exam_date_<id>
+    const localStoredDate = getDeckExamDate(deck.id);
+    if (!activeDate && localStoredDate) {
+      activeDate = localStoredDate;
+      // Persist to server, then remove localStorage key on success
+      fetch(`/api/decks/${deck.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ examDate: localStoredDate }),
+      })
+        .then((res) => {
+          if (res.ok) {
+            setDeckExamDate(deck.id, null);
+          }
+        })
+        .catch(() => {
+          // Silent fallback for offline / background migration
+        });
+    } else if (activeDate && localStoredDate) {
+      // Server already has date; clean up obsolete localStorage without overwriting server
+      setDeckExamDate(deck.id, null);
+    }
+
+    setExamDate(activeDate);
 
     const updateScoreAndPacing = () => {
       const progress = getDeckAssessmentProgress(deck.id);
@@ -51,7 +79,7 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
 
       const completedCount = Object.values(progress).filter((p) => p.completed).length;
       const pacingRes = calculatePacing(
-        storedDate,
+        activeDate,
         totalCardCount,
         stats.masteredCount,
         completedCount,
@@ -63,24 +91,48 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
     updateScoreAndPacing();
     window.addEventListener('cadence_assessment_updated', updateScoreAndPacing);
     return () => window.removeEventListener('cadence_assessment_updated', updateScoreAndPacing);
-  }, [deck.id, stats.totalCards, stats.masteredCount]);
+  }, [deck.id, deck.examDate, stats.totalCards, stats.masteredCount]);
 
-  const handleSetExamDate = (newDate: string | null) => {
-    setExamDate(newDate);
-    setDeckExamDate(deck.id, newDate);
-    setIsEditingDate(false);
+  const handleSetExamDate = async (newDate: string | null) => {
+    setIsSavingDate(true);
+    setDateSaveError(null);
 
-    const totalCardCount = cardList.length > 0 ? cardList.length : stats.totalCards;
-    const progress = getDeckAssessmentProgress(deck.id);
-    const completedCount = Object.values(progress).filter((p) => p.completed).length;
-    const pacingRes = calculatePacing(
-      newDate,
-      totalCardCount,
-      stats.masteredCount,
-      completedCount,
-      7
-    );
-    setPacing(pacingRes);
+    try {
+      const res = await fetch(`/api/decks/${deck.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ examDate: newDate }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save exam date');
+      }
+
+      const updatedDeck: Deck = await res.json();
+      const normalizedDate = updatedDeck.examDate ? updatedDeck.examDate.split('T')[0] : null;
+
+      setExamDate(normalizedDate);
+      setDeckExamDate(deck.id, null);
+      setIsEditingDate(false);
+
+      const totalCardCount = cardList.length > 0 ? cardList.length : stats.totalCards;
+      const progress = getDeckAssessmentProgress(deck.id);
+      const completedCount = Object.values(progress).filter((p) => p.completed).length;
+      const pacingRes = calculatePacing(
+        normalizedDate,
+        totalCardCount,
+        stats.masteredCount,
+        completedCount,
+        7
+      );
+      setPacing(pacingRes);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to save exam date';
+      setDateSaveError(errMsg);
+    } finally {
+      setIsSavingDate(false);
+    }
   };
 
   const setQuickDate = (daysFromNow: number) => {
@@ -290,18 +342,30 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0">
+            {isSavingDate && (
+              <span className="text-[11px] text-[var(--color-text-secondary)] font-medium animate-pulse">
+                Saving date…
+              </span>
+            )}
+            {dateSaveError && (
+              <span className="text-[11px] text-rose-500 font-medium">
+                {dateSaveError}
+              </span>
+            )}
             {isEditingDate ? (
               <div className="flex items-center gap-2">
                 <input
                   type="date"
                   value={examDate || ''}
+                  disabled={isSavingDate}
                   onChange={(e) => handleSetExamDate(e.target.value || null)}
-                  className="px-2.5 py-1 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-text)]"
+                  className="px-2.5 py-1 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] focus:outline-none focus:border-[var(--color-text)] disabled:opacity-50"
                 />
                 <Button
                   variant="ghost"
                   size="sm"
+                  disabled={isSavingDate}
                   onClick={() => setIsEditingDate(false)}
                   className="text-[12px]"
                 >
@@ -317,29 +381,33 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
                     </span>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => setQuickDate(3)}
-                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] disabled:opacity-50 transition-all"
                     >
                       3 Days
                     </button>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => setQuickDate(7)}
-                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] disabled:opacity-50 transition-all"
                     >
                       1 Week
                     </button>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => setQuickDate(14)}
-                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] disabled:opacity-50 transition-all"
                     >
                       2 Weeks
                     </button>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => setIsEditingDate(true)}
-                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] disabled:opacity-50 transition-all"
                     >
                       Pick Date…
                     </button>
@@ -348,15 +416,17 @@ export default function DeckDetailClient({ deck, stats, cards }: Props) {
                   <>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => setIsEditingDate(true)}
-                      className="px-2.5 py-1 rounded-[var(--radius-sm)] text-[12px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] transition-all"
+                      className="px-2.5 py-1 rounded-[var(--radius-sm)] text-[12px] font-semibold bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-border)] disabled:opacity-50 transition-all"
                     >
                       Change Date ({examDate})
                     </button>
                     <button
                       type="button"
+                      disabled={isSavingDate}
                       onClick={() => handleSetExamDate(null)}
-                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-rose-500 transition-colors"
+                      className="px-2 py-1 rounded-[var(--radius-sm)] text-[11px] font-medium text-[var(--color-text-secondary)] hover:text-rose-500 disabled:opacity-50 transition-colors"
                       title="Clear exam date"
                     >
                       Clear

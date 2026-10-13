@@ -20,6 +20,134 @@ export interface ExamPacingResult {
   pacingSummary: string;
 }
 
+export type ExamDateValidationResult =
+  | { valid: true; date: Date | null; isoString: string | null; error?: undefined; status?: undefined }
+  | { valid: false; error: string; status: 400; date?: undefined; isoString?: undefined };
+
+/**
+ * Validates an exam date input for persistence.
+ * Accepts null (to clear date) or a valid ISO/calendar date string.
+ * Rejects non-strings, malformed dates, past dates (< today), and dates > 3 years in the future.
+ * Normalized to UTC midnight of the target calendar date.
+ */
+export function validateExamDate(
+  input: unknown,
+  now: Date = new Date()
+): ExamDateValidationResult {
+  if (input === null) {
+    return { valid: true, date: null, isoString: null };
+  }
+
+  if (typeof input !== 'string') {
+    return {
+      valid: false,
+      error: 'Exam date must be an ISO date string or null.',
+      status: 400,
+    };
+  }
+
+  const trimmed = input.trim();
+  if (trimmed === '') {
+    return {
+      valid: false,
+      error: 'Exam date cannot be empty.',
+      status: 400,
+    };
+  }
+
+  const ymdMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (ymdMatch) {
+    year = parseInt(ymdMatch[1], 10);
+    month = parseInt(ymdMatch[2], 10);
+    day = parseInt(ymdMatch[3], 10);
+  } else {
+    const parsed = new Date(trimmed);
+    if (isNaN(parsed.getTime())) {
+      return {
+        valid: false,
+        error: 'Invalid date format. Expected valid ISO date string.',
+        status: 400,
+      };
+    }
+    year = parsed.getUTCFullYear();
+    month = parsed.getUTCMonth() + 1;
+    day = parsed.getUTCDate();
+  }
+
+  const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+  if (
+    isNaN(utcDate.getTime()) ||
+    utcDate.getUTCFullYear() !== year ||
+    utcDate.getUTCMonth() !== month - 1 ||
+    utcDate.getUTCDate() !== day
+  ) {
+    return {
+      valid: false,
+      error: 'Invalid calendar date.',
+      status: 400,
+    };
+  }
+
+  const nowYear = now.getUTCFullYear();
+  const nowMonth = now.getUTCMonth();
+  const nowDay = now.getUTCDate();
+  const todayUtcMidnight = new Date(Date.UTC(nowYear, nowMonth, nowDay, 0, 0, 0, 0));
+
+  if (utcDate.getTime() < todayUtcMidnight.getTime()) {
+    return {
+      valid: false,
+      error: 'Exam date cannot be in the past.',
+      status: 400,
+    };
+  }
+
+  const maxFutureDate = new Date(Date.UTC(nowYear + 3, nowMonth, nowDay, 0, 0, 0, 0));
+  if (utcDate.getTime() > maxFutureDate.getTime()) {
+    return {
+      valid: false,
+      error: 'Exam date cannot be more than 3 years in the future.',
+      status: 400,
+    };
+  }
+
+  return {
+    valid: true,
+    date: utcDate,
+    isoString: utcDate.toISOString(),
+  };
+}
+
+/**
+ * Counts calendar days until the target exam date in the user's local timezone.
+ * Exam day itself = 0, past = negative, future = positive.
+ */
+export function daysUntilExam(
+  examDate: string | Date,
+  now: string | Date = new Date(),
+  timezoneOffsetMinutes: number = 0
+): number {
+  const nowDate = typeof now === 'string' ? new Date(now) : now;
+  const nowLocalMs = nowDate.getTime() + timezoneOffsetMinutes * 60 * 1000;
+  const nowDayIndex = Math.floor(nowLocalMs / (24 * 60 * 60 * 1000));
+
+  let examDayIndex: number;
+  if (typeof examDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(examDate.trim())) {
+    const [y, m, d] = examDate.trim().split('-').map(Number);
+    examDayIndex = Math.floor(Date.UTC(y, m - 1, d) / (24 * 60 * 60 * 1000));
+  } else {
+    const eDate = typeof examDate === 'string' ? new Date(examDate) : examDate;
+    examDayIndex = Math.floor(
+      Date.UTC(eDate.getUTCFullYear(), eDate.getUTCMonth(), eDate.getUTCDate()) / (24 * 60 * 60 * 1000)
+    );
+  }
+
+  return examDayIndex - nowDayIndex;
+}
+
 export function getDeckExamDate(deckId: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
