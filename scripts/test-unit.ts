@@ -13,6 +13,8 @@ import { generateCards, CardGenerationError } from '../lib/ai/generate-cards';
 import type { Card, CardPayload, CardType } from '../types/index';
 import { gradeClozeAnswer } from '../lib/cloze/grade';
 import { formatSSEEvent, createSSEParser, parseSSEEvents, parseStreamingRationale } from '../lib/ai/sse';
+import { validateExplainBody, MAX_BODY_CHARS } from '../lib/ai/limits';
+import { getClientIp } from '../lib/rate-limit';
 
 let passed = 0;
 let failed = 0;
@@ -251,6 +253,102 @@ Primary active transport always requires direct ATP hydrolysis.`;
     parsedSections.keyTakeaway.includes('Primary active transport always requires direct ATP hydrolysis'),
     'parseStreamingRationale correctly isolates the 3 pedagogical sections'
   );
+
+  console.log('\n--- Testing Explain Input Limits (lib/ai/limits) ---');
+  const okBody = {
+    question: 'What drives active transport?',
+    chosenAnswer: 'Diffusion',
+    correctAnswer: 'ATP hydrolysis',
+    explanation: 'Pumps use ATP.',
+    cardType: 'mcq',
+    options: ['Diffusion', 'ATP hydrolysis', 'Osmosis'],
+    stream: true,
+  };
+  const okRes = validateExplainBody(JSON.stringify(okBody), null);
+  assert(
+    okRes.ok === true && JSON.stringify(okRes.data) === JSON.stringify(okBody),
+    'Normal input passes unchanged'
+  );
+
+  const bigText = JSON.stringify({ ...okBody, question: 'x'.repeat(MAX_BODY_CHARS) });
+  const bigRes = validateExplainBody(bigText, null);
+  assert(!bigRes.ok && bigRes.status === 413, 'Rejects body text longer than 20,000 chars with 413');
+  const clRes = validateExplainBody(JSON.stringify(okBody), String(MAX_BODY_CHARS + 1));
+  assert(!clRes.ok && clRes.status === 413, 'Rejects oversized Content-Length header with 413');
+
+  const capRes = validateExplainBody(
+    JSON.stringify({
+      question: 'q'.repeat(1500),
+      chosenAnswer: 'c'.repeat(900),
+      correctAnswer: 'a'.repeat(900),
+      explanation: 'e'.repeat(2500),
+      options: Array.from({ length: 12 }, () => 'o'.repeat(400)),
+    }),
+    null
+  );
+  assert(capRes.ok && capRes.data.question.length === 1000, 'Caps question at 1000 chars');
+  assert(capRes.ok && capRes.data.chosenAnswer?.length === 500, 'Caps chosenAnswer at 500 chars');
+  assert(capRes.ok && capRes.data.correctAnswer.length === 500, 'Caps correctAnswer at 500 chars');
+  assert(capRes.ok && capRes.data.explanation?.length === 2000, 'Caps explanation at 2000 chars');
+  assert(capRes.ok && capRes.data.options?.length === 8, 'Caps options array at 8 items');
+  assert(capRes.ok && !!capRes.data.options?.every((o) => o.length === 250), 'Caps each option at 250 chars');
+
+  const trimRes = validateExplainBody(JSON.stringify({ question: '  Q  ', correctAnswer: ' A ' }), null);
+  assert(trimRes.ok && trimRes.data.question === 'Q' && trimRes.data.correctAnswer === 'A', 'Trims string fields');
+
+  const badCases: Array<[string, unknown]> = [
+    ['question is a number', { ...okBody, question: 42 }],
+    ['chosenAnswer is an object', { ...okBody, chosenAnswer: { a: 1 } }],
+    ['explanation is an array', { ...okBody, explanation: ['x'] }],
+    ['cardType is a number', { ...okBody, cardType: 3 }],
+    ['options is a string', { ...okBody, options: 'A,B' }],
+    ['an option is a number', { ...okBody, options: ['A', 2] }],
+    ['stream is a string', { ...okBody, stream: 'yes' }],
+    ['body is an array', [okBody]],
+    ['body is null', null],
+  ];
+  for (const [label, body] of badCases) {
+    const r = validateExplainBody(JSON.stringify(body), null);
+    assert(!r.ok && r.status === 400, `Rejects wrong type with 400: ${label}`);
+  }
+  const badJson = validateExplainBody('{not json', null);
+  assert(!badJson.ok && badJson.status === 400, 'Rejects malformed JSON with 400');
+
+  const missingQ = validateExplainBody(JSON.stringify({ correctAnswer: 'A' }), null);
+  assert(!missingQ.ok && missingQ.status === 400, 'Rejects missing question with 400');
+  const emptyA = validateExplainBody(JSON.stringify({ question: 'Q', correctAnswer: '   ' }), null);
+  assert(!emptyA.ok && emptyA.status === 400, 'Rejects whitespace-only correctAnswer with 400');
+  const emptyBody = validateExplainBody('', null);
+  assert(!emptyBody.ok && emptyBody.status === 400, 'Rejects empty body with 400');
+  const minimal = validateExplainBody(JSON.stringify({ question: 'Q', correctAnswer: 'A', chosenAnswer: null }), null);
+  assert(
+    minimal.ok && minimal.data.chosenAnswer === undefined && minimal.data.options === undefined,
+    'Optional fields may be missing or null'
+  );
+
+  console.log('\n--- Testing getClientIp (TRUSTED_PROXY) ---');
+  const prevTrusted = process.env.TRUSTED_PROXY;
+  const spoofed = new Request('http://localhost/x', {
+    headers: { 'x-forwarded-for': '6.6.6.6, 10.0.0.1', 'x-real-ip': '1.2.3.4' },
+  });
+  const xffOnly = new Request('http://localhost/x', { headers: { 'x-forwarded-for': '6.6.6.6' } });
+  delete process.env.TRUSTED_PROXY;
+  assert(getClientIp(spoofed) === '1.2.3.4', 'Ignores x-forwarded-for when TRUSTED_PROXY unset (uses x-real-ip)');
+  assert(getClientIp(xffOnly) === 'unknown', 'Ignores x-forwarded-for when TRUSTED_PROXY unset (falls back to unknown)');
+  process.env.TRUSTED_PROXY = '1';
+  assert(getClientIp(spoofed) === '6.6.6.6', 'Uses first x-forwarded-for entry when TRUSTED_PROXY=1');
+  let threw = false;
+  let noHeaderIp = '';
+  try {
+    noHeaderIp = getClientIp(new Request('http://localhost/x'));
+    delete process.env.TRUSTED_PROXY;
+    noHeaderIp += '|' + getClientIp(new Request('http://localhost/x'));
+  } catch {
+    threw = true;
+  }
+  assert(!threw && noHeaderIp === 'unknown|unknown', 'Never throws on missing headers');
+  if (prevTrusted === undefined) delete process.env.TRUSTED_PROXY;
+  else process.env.TRUSTED_PROXY = prevTrusted;
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);

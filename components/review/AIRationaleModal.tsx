@@ -71,6 +71,13 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
       options: card.options && card.options.length > 0 ? card.options : undefined,
     };
 
+    // Statuses where a non-streaming retry cannot succeed; show a friendly message instead.
+    const FRIENDLY_STATUS_MESSAGES: Record<number, string> = {
+      401: 'Sign in to use the AI tutor.',
+      413: 'This card’s text is too long for the AI tutor.',
+      429: 'The AI tutor is busy. Please try again in a minute.',
+    };
+
     async function fetchNonStreamingFallback() {
       try {
         const res = await fetch('/api/review/explain', {
@@ -81,6 +88,11 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
         });
 
         if (!res.ok) {
+          const friendly = FRIENDLY_STATUS_MESSAGES[res.status];
+          if (friendly) {
+            if (isMounted) setError(friendly);
+            return;
+          }
           throw new Error(`Failed to load rationale: ${res.statusText}`);
         }
 
@@ -112,6 +124,16 @@ export function AIRationaleModal({ card, chosenAnswer, isOpen, onClose }: Props)
           body: JSON.stringify({ ...payload, stream: true }),
           signal: controller.signal,
         });
+
+        const friendly = FRIENDLY_STATUS_MESSAGES[res.status];
+        if (friendly) {
+          if (isMounted) {
+            setError(friendly);
+            setLoading(false);
+            setIsStreaming(false);
+          }
+          return;
+        }
 
         if (!res.ok || !res.body) {
           throw new Error(`Stream request failed (${res.status})`);

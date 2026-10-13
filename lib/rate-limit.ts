@@ -77,15 +77,23 @@ export function checkRateLimit(
 
 /**
  * Helper to extract client IP address from Next.js request headers.
+ *
+ * x-forwarded-for is client-controlled unless a trusted reverse proxy
+ * overwrites it, so it is only honoured when env TRUSTED_PROXY=1.
+ * Otherwise falls back to x-real-ip, then the constant 'unknown'.
  */
 export function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
+  if (process.env.TRUSTED_PROXY === '1') {
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const first = forwardedFor?.split(',')[0]?.trim();
+    if (first) {
+      return first;
+    }
   }
-  const realIp = request.headers.get('x-real-ip');
+  const realIp = request.headers.get('x-real-ip')?.trim();
   if (realIp) {
-    return realIp.trim();
+    return realIp;
   }
-  return '127.0.0.1';
+  return 'unknown';
 }
+
