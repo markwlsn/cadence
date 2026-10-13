@@ -127,11 +127,16 @@ export async function generateTextWithAI(options: {
           contents,
         };
 
+        const generationConfig: Record<string, unknown> = {};
         if (options.jsonMode) {
-          body.generationConfig = {
-            responseMimeType: 'application/json',
-            temperature: 0.2,
-          };
+          generationConfig.responseMimeType = 'application/json';
+          generationConfig.temperature = 0.2;
+        }
+        if (options.maxTokens !== undefined) {
+          generationConfig.maxOutputTokens = options.maxTokens;
+        }
+        if (Object.keys(generationConfig).length > 0) {
+          body.generationConfig = generationConfig;
         }
 
         let res = await fetch(url, {
