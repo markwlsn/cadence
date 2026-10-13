@@ -14,7 +14,7 @@ import type { Card, CardPayload, CardType } from '../types/index';
 import { gradeClozeAnswer } from '../lib/cloze/grade';
 import { formatSSEEvent, createSSEParser, parseSSEEvents, parseStreamingRationale } from '../lib/ai/sse';
 import { validateExplainBody, MAX_BODY_CHARS } from '../lib/ai/limits';
-import { getClientIp } from '../lib/rate-limit';
+import { getClientIp, checkRateLimit, pruneRateLimitStore, RATE_LIMIT_RETENTION_MS } from '../lib/rate-limit';
 
 let passed = 0;
 let failed = 0;
@@ -349,6 +349,21 @@ Primary active transport always requires direct ATP hydrolysis.`;
   assert(!threw && noHeaderIp === 'unknown|unknown', 'Never throws on missing headers');
   if (prevTrusted === undefined) delete process.env.TRUSTED_PROXY;
   else process.env.TRUSTED_PROXY = prevTrusted;
+
+  console.log('\n--- Testing Rate Limiter Cleanup Retention ---');
+  const gKey = `explain:guest:test-${Date.now()}`;
+  const t0 = 1_000_000_000_000;
+  let allowedCount = 0;
+  for (let i = 0; i < 10; i++) {
+    if (checkRateLimit(gKey, 10, 600000, t0 + i * 1000).allowed) allowedCount++;
+  }
+  assert(allowedCount === 10, 'Guest gets 10 requests at the start of the window');
+  pruneRateLimitStore(t0 + 330000); // cleanup runs 5.5 min in (old 300 s retention would wipe history)
+  const afterCleanup = checkRateLimit(gKey, 10, 600000, t0 + 360000);
+  assert(!afterCleanup.allowed, 'Guest still blocked at 6 min after a cleanup run (cannot exceed 10 per 10 min)');
+  assert(RATE_LIMIT_RETENTION_MS >= 600000, 'Cleanup retention covers the longest 600 s window');
+  const afterWindow = checkRateLimit(gKey, 10, 600000, t0 + 600000 + 1);
+  assert(afterWindow.allowed, 'Guest allowed again once the 10-minute window has passed');
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);

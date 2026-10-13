@@ -11,17 +11,29 @@ interface RateLimitRecord {
 
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
+/**
+ * How long timestamps are retained by the periodic cleanup. Must be at least
+ * the longest window in use (explain guest limit: 600 s) plus a margin,
+ * otherwise cleanup would silently reset long-window quotas.
+ */
+export const RATE_LIMIT_RETENTION_MS = 660000;
+
+/**
+ * Prune expired timestamps from the store. Exported so tests can simulate a
+ * cleanup run; `now` is injectable for the same reason.
+ */
+export function pruneRateLimitStore(now: number = Date.now()): void {
+  for (const [key, record] of rateLimitStore.entries()) {
+    record.timestamps = record.timestamps.filter((t) => now - t < RATE_LIMIT_RETENTION_MS);
+    if (record.timestamps.length === 0) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
 // Clean up expired entries every 5 minutes to prevent memory leaks
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, record] of rateLimitStore.entries()) {
-      record.timestamps = record.timestamps.filter((t) => now - t < 300000);
-      if (record.timestamps.length === 0) {
-        rateLimitStore.delete(key);
-      }
-    }
-  }, 300000).unref?.();
+  setInterval(() => pruneRateLimitStore(), 300000).unref?.();
 }
 
 export interface RateLimitResult {
@@ -36,13 +48,14 @@ export interface RateLimitResult {
  * @param key Unique identifier (e.g., `ip + ':' + endpoint` or `userId`)
  * @param limit Max allowed requests within windowMs
  * @param windowMs Time window in milliseconds (default: 60,000ms / 1 min)
+ * @param now Current time in ms (injectable for tests; defaults to Date.now())
  */
 export function checkRateLimit(
   key: string,
   limit: number = 60,
-  windowMs: number = 60000
+  windowMs: number = 60000,
+  now: number = Date.now()
 ): RateLimitResult {
-  const now = Date.now();
   let record = rateLimitStore.get(key);
 
   if (!record) {
