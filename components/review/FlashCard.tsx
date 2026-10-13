@@ -3,7 +3,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Card as CardType, Rating } from '@/types';
 import { Badge, Button } from '@/components/ui';
-import { gradeClozeAnswer, type ClozeMatchCategory, type ClozeDiffHighlight } from '@/lib/cloze/grade';
+import {
+  gradeClozeAnswer,
+  splitAlternatives,
+  type ClozeMatchCategory,
+  type ClozeDiffHighlight,
+} from '@/lib/cloze/grade';
 import { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch } from '@/lib/assessments';
 
 export { cleanOptionDisplay, cleanQuestionDisplay, isAnswerMatch };
@@ -47,8 +52,8 @@ function cleanCodeText(text: string): string {
 
 
 
-/** Parse front text and return cloze parts along with target answer */
-function parseCloze(front: string, back: string): { parts: ClozePart[]; expectedAnswer: string } {
+/** Parse front text and return cloze parts along with target answer and alternatives */
+function parseCloze(front: string, back: string): { parts: ClozePart[]; expectedAnswer: string; alternatives: string[] } {
   const cleanFront = cleanCodeText(front);
 
   // 1. Check for {{blank}} syntax
@@ -61,7 +66,8 @@ function parseCloze(front: string, back: string): { parts: ClozePart[]; expected
         parts.push({ text: '', isBlank: true });
       }
     });
-    return { parts, expectedAnswer: back.trim() };
+    const alternatives = splitAlternatives(back.trim());
+    return { parts, expectedAnswer: alternatives[0] || back.trim(), alternatives };
   }
 
   // 2. Check for {{c1::term}} Anki syntax
@@ -79,7 +85,9 @@ function parseCloze(front: string, back: string): { parts: ClozePart[]; expected
         parts.push({ text: token, isBlank: false });
       }
     });
-    return { parts, expectedAnswer: extractedAnswer || back.trim() };
+    const target = extractedAnswer || back.trim();
+    const alternatives = splitAlternatives(target);
+    return { parts, expectedAnswer: alternatives[0] || target, alternatives };
   }
 
   // 3. Check for [ ... ] or ___ underscores
@@ -93,16 +101,19 @@ function parseCloze(front: string, back: string): { parts: ClozePart[]; expected
         parts.push({ text: token, isBlank: false });
       }
     });
-    return { parts, expectedAnswer: back.trim() };
+    const alternatives = splitAlternatives(back.trim());
+    return { parts, expectedAnswer: alternatives[0] || back.trim(), alternatives };
   }
 
   // Fallback
+  const alternatives = splitAlternatives(back.trim());
   return {
     parts: [
       { text: cleanFront, isBlank: false },
       { text: '', isBlank: true },
     ],
-    expectedAnswer: back.trim(),
+    expectedAnswer: alternatives[0] || back.trim(),
+    alternatives,
   };
 }
 
@@ -138,6 +149,7 @@ export function FlashCard({
   const [clozeStatus, setClozeStatus] = useState<'idle' | ClozeMatchCategory>('idle');
   const [clozeFeedback, setClozeFeedback] = useState<string>('');
   const [clozeDiff, setClozeDiff] = useState<ClozeDiffHighlight | undefined>(undefined);
+  const [clozeMatchedAnswer, setClozeMatchedAnswer] = useState<string | undefined>(undefined);
   const [showHint, setShowHint] = useState<boolean>(false);
   const [isTypingModeEnabled, setIsTypingModeEnabled] = useState<boolean>(true);
 
@@ -172,22 +184,31 @@ export function FlashCard({
     setClozeStatus('idle');
     setClozeFeedback('');
     setClozeDiff(undefined);
+    setClozeMatchedAnswer(undefined);
     setShowHint(false);
     setBasicAnswer('');
   }, [card.id]);
 
   const isCode = useMemo(() => isCodeSnippet(card.front), [card.front]);
   const clozeData = useMemo(() => parseCloze(card.front, card.back), [card.front, card.back]);
+  const otherAlternatives = useMemo(
+    () => clozeData.alternatives.slice(1),
+    [clozeData.alternatives]
+  );
 
   const handleCheckCloze = useCallback(() => {
     if (!clozeInput.trim()) return;
-    const result = gradeClozeAnswer(clozeInput, clozeData.expectedAnswer);
+    const result = gradeClozeAnswer(
+      clozeInput,
+      clozeData.alternatives.length > 0 ? clozeData.alternatives : clozeData.expectedAnswer
+    );
     setClozeStatus(result.category);
     setClozeFeedback(result.message);
     setClozeDiff(result.diff);
+    setClozeMatchedAnswer(result.matchedAnswer);
     // Suggest FSRS rating: exact -> Good, close -> Hard, wrong -> Again
     onSuggestRating?.(result.suggestedRating);
-  }, [clozeInput, clozeData.expectedAnswer, onSuggestRating]);
+  }, [clozeInput, clozeData.alternatives, clozeData.expectedAnswer, onSuggestRating]);
 
   const handleSelectMcq = useCallback(
     (index: number) => {
@@ -465,6 +486,11 @@ export function FlashCard({
                       </div>
                       <div className="text-[12px] opacity-90">
                         Correct Answer: <strong className="underline decoration-amber-500 underline-offset-2">{clozeData.expectedAnswer}</strong>
+                        {otherAlternatives.length > 0 && (
+                          <span className="block text-[11px] opacity-80 mt-0.5">
+                            Also accepted: {otherAlternatives.join(', ')}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -482,6 +508,11 @@ export function FlashCard({
                       </div>
                       <div className="text-[12px] opacity-90">
                         Correct Answer: <strong>{clozeData.expectedAnswer}</strong>
+                        {otherAlternatives.length > 0 && (
+                          <span className="block text-[11px] opacity-80 mt-0.5">
+                            Also accepted: {otherAlternatives.join(', ')}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -749,6 +780,11 @@ export function FlashCard({
                     <span className="text-[22px] sm:text-[26px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                       {clozeData.expectedAnswer}
                     </span>
+                    {otherAlternatives.length > 0 && (
+                      <span className="text-[13px] text-[var(--color-text-secondary)] font-normal">
+                        Also accepted: {otherAlternatives.join(', ')}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -781,8 +817,13 @@ export function FlashCard({
                         Expected Answer
                       </span>
                       <span className="font-semibold text-[var(--color-text)]">
-                        {clozeData.expectedAnswer}
+                        {clozeMatchedAnswer || clozeData.expectedAnswer}
                       </span>
+                      {otherAlternatives.length > 0 && (
+                        <span className="block text-[11px] text-[var(--color-text-secondary)] mt-0.5">
+                          Also accepted: {otherAlternatives.join(', ')}
+                        </span>
+                      )}
                       {clozeStatus === 'close' && clozeDiff && (
                         <span className="block text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
                           (Difference near character {clozeDiff.diffIndex + 1})

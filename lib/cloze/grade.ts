@@ -40,6 +40,48 @@ export interface ClozeGradeResult {
   suggestedRating: 'good' | 'hard' | 'again';
   message: string;
   diff?: ClozeDiffHighlight;
+  matchedAnswer?: string;
+}
+
+/**
+ * Splits expected cloze answer into accepted alternatives separated by "|".
+ * Supports escaped pipes ("\\|") as literal pipe characters.
+ * Trims whitespace and drops empty parts.
+ */
+export function splitAlternatives(raw: string): string[] {
+  if (!raw) return [];
+  const parts: string[] = [];
+  let current = '';
+  let escaped = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i];
+    if (escaped) {
+      if (char === '|') {
+        current += '|';
+      } else {
+        current += '\\' + char;
+      }
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '|') {
+      const trimmed = current.trim();
+      if (trimmed) parts.push(trimmed);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (escaped) {
+    current += '\\';
+  }
+  const trimmed = current.trim();
+  if (trimmed) {
+    parts.push(trimmed);
+  }
+
+  return parts;
 }
 
 /**
@@ -61,10 +103,9 @@ export function findFirstDiffIndex(a: string, b: string): number {
 }
 
 /**
- * Main grading function for student cloze input against an expected answer.
- * Integrates with Cadence's FSRS spaced repetition engine.
+ * Evaluates student cloze input against a single expected alternative.
  */
-export function gradeClozeAnswer(
+function gradeSingleAlternative(
   studentInput: string,
   expectedAnswer: string,
   options: ClozeGradingOptions = {}
@@ -82,6 +123,7 @@ export function gradeClozeAnswer(
       distance: Math.max(normStudent.length, normExpected.length),
       suggestedRating: 'again',
       message: 'No answer provided.',
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -96,6 +138,7 @@ export function gradeClozeAnswer(
       distance: 0,
       suggestedRating: 'good',
       message: 'Spot on! Excellent active recall.',
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -112,6 +155,7 @@ export function gradeClozeAnswer(
       distance: 0,
       suggestedRating: 'good',
       message: 'Exact match (syntax spacing normalized)',
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -137,6 +181,7 @@ export function gradeClozeAnswer(
       suggestedRating: 'again',
       message: 'Exact match required in strict evaluation mode.',
       diff: diffHighlight,
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -152,6 +197,7 @@ export function gradeClozeAnswer(
       suggestedRating: 'hard',
       message: 'Correct concept! (Watch out for accent marks)',
       diff: diffHighlight,
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -167,6 +213,7 @@ export function gradeClozeAnswer(
       suggestedRating: 'again',
       message: 'Exact match required for short terms.',
       diff: diffHighlight,
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -182,6 +229,7 @@ export function gradeClozeAnswer(
       suggestedRating: 'hard',
       message: `Minor typo (${studentInput} → ${expectedAnswer})`,
       diff: diffHighlight,
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -197,6 +245,7 @@ export function gradeClozeAnswer(
       suggestedRating: 'hard',
       message: `Close match (${studentInput} → ${expectedAnswer})`,
       diff: diffHighlight,
+      matchedAnswer: expectedAnswer,
     };
   }
 
@@ -211,5 +260,61 @@ export function gradeClozeAnswer(
     suggestedRating: 'again',
     message: 'Not quite. Check the model answer below.',
     diff: diffHighlight,
+    matchedAnswer: expectedAnswer,
   };
+}
+
+/**
+ * Main grading function for student cloze input against expected answer(s).
+ * Supports pipe-separated alternative answers ("a|b") or an array of alternatives.
+ * Integrates with Cadence's FSRS spaced repetition engine.
+ */
+export function gradeClozeAnswer(
+  studentInput: string,
+  expectedAnswer: string | string[],
+  options: ClozeGradingOptions = {}
+): ClozeGradeResult {
+  const alternatives: string[] = Array.isArray(expectedAnswer)
+    ? expectedAnswer.flatMap((a) => splitAlternatives(a))
+    : splitAlternatives(expectedAnswer);
+
+  if (alternatives.length === 0) {
+    return {
+      isCorrect: false,
+      category: 'wrong',
+      matchType: 'incorrect',
+      score: 0,
+      similarity: 0,
+      distance: normalizeAnswer(studentInput).length,
+      suggestedRating: 'again',
+      message: 'No answer provided.',
+    };
+  }
+
+  if (alternatives.length === 1) {
+    return gradeSingleAlternative(studentInput, alternatives[0], options);
+  }
+
+  // Grade against each alternative individually
+  const results = alternatives.map((alt) =>
+    gradeSingleAlternative(studentInput, alt, options)
+  );
+
+  // Best result wins: exact > close > wrong, then higher score, then lower distance
+  results.sort((a, b) => {
+    const catScore = (cat: ClozeMatchCategory) =>
+      cat === 'exact' ? 3 : cat === 'close' ? 2 : 1;
+    const catDiff = catScore(b.category) - catScore(a.category);
+    if (catDiff !== 0) return catDiff;
+
+    const scoreDiff = b.score - a.score;
+    if (scoreDiff !== 0) return scoreDiff;
+
+    const distDiff = a.distance - b.distance;
+    if (distDiff !== 0) return distDiff;
+
+    return b.similarity - a.similarity;
+  });
+
+  return results[0];
 }

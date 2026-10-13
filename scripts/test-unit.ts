@@ -11,7 +11,7 @@ import { checkOverlap, wordLcs, normalise, QUALITY_GATE_THRESHOLD } from '../lib
 import { parseContent } from '../lib/ai/parse-content';
 import { generateCards, CardGenerationError } from '../lib/ai/generate-cards';
 import type { Card, CardPayload, CardType } from '../types/index';
-import { gradeClozeAnswer } from '../lib/cloze/grade';
+import { gradeClozeAnswer, splitAlternatives } from '../lib/cloze/grade';
 import { formatSSEEvent, createSSEParser, parseSSEEvents, parseStreamingRationale } from '../lib/ai/sse';
 import { validateExplainBody, MAX_BODY_CHARS } from '../lib/ai/limits';
 import { getClientIp, checkRateLimit, pruneRateLimitStore, RATE_LIMIT_RETENTION_MS } from '../lib/rate-limit';
@@ -364,6 +364,106 @@ Primary active transport always requires direct ATP hydrolysis.`;
   assert(RATE_LIMIT_RETENTION_MS >= 600000, 'Cleanup retention covers the longest 600 s window');
   const afterWindow = checkRateLimit(gKey, 10, 600000, t0 + 600000 + 1);
   assert(afterWindow.allowed, 'Guest allowed again once the 10-minute window has passed');
+
+  console.log('\n--- Testing Cloze Alternative Parsing (splitAlternatives) ---');
+  assert(
+    JSON.stringify(splitAlternatives('mitochondria')) === JSON.stringify(['mitochondria']),
+    'splitAlternatives: single answer without pipe'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('color|colour')) === JSON.stringify(['color', 'colour']),
+    'splitAlternatives: two alternatives'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('alpha|beta|gamma')) === JSON.stringify(['alpha', 'beta', 'gamma']),
+    'splitAlternatives: three alternatives'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('  color  |   colour  ')) === JSON.stringify(['color', 'colour']),
+    'splitAlternatives: trims extra spaces around alternatives'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('color||colour|')) === JSON.stringify(['color', 'colour']),
+    'splitAlternatives: drops empty parts'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('a\\|b')) === JSON.stringify(['a|b']),
+    'splitAlternatives: escaped pipe stays one answer'
+  );
+  assert(
+    JSON.stringify(splitAlternatives('|||')) === JSON.stringify([]),
+    'splitAlternatives: only pipes yields no alternatives'
+  );
+
+  console.log('\n--- Testing Cloze Alternative Grading ---');
+  // Match second alternative exactly
+  const resExactSecond = gradeClozeAnswer('colour', 'color|colour');
+  assert(
+    resExactSecond.category === 'exact' && resExactSecond.matchedAnswer === 'colour',
+    'Grading: matches second alternative exactly -> exact (with matchedAnswer)'
+  );
+
+  // Array input variant
+  const resArrayExact = gradeClozeAnswer('colour', ['color', 'colour']);
+  assert(
+    resArrayExact.category === 'exact' && resArrayExact.matchedAnswer === 'colour',
+    'Grading: accepts string[] expectedAnswer and matches second alternative'
+  );
+
+  // Typo against second alternative
+  const resCloseSecond = gradeClozeAnswer('mitochndrion', 'mitochondria|mitochondrion');
+  assert(
+    resCloseSecond.category === 'close' && resCloseSecond.matchedAnswer === 'mitochondrion',
+    'Grading: typo against second alternative -> close (with matchedAnswer)'
+  );
+
+  // Input far from all alternatives -> wrong
+  const resWrong = gradeClozeAnswer('ribosome', 'color|colour');
+  assert(
+    resWrong.category === 'wrong',
+    'Grading: input far from all alternatives -> wrong'
+  );
+
+  // Short alternative (<= 3 chars) stays strict next to a long one
+  const resShortStrict = gradeClozeAnswer('adp', 'atp|adenosine triphosphate');
+  assert(
+    resShortStrict.category === 'wrong',
+    'Grading: short alternative (<=3 chars) stays strict next to long alternative (ADP vs ATP)'
+  );
+  const resLongTypo = gradeClozeAnswer('adenosine triphosfate', 'atp|adenosine triphosphate');
+  assert(
+    resLongTypo.category === 'close' && resLongTypo.matchedAnswer === 'adenosine triphosphate',
+    'Grading: typo on long alternative allowed next to short alternative'
+  );
+
+  // Best result wins when one alternative is exact and another is close
+  // 'colour' vs 'color' (dist 1 -> close) vs 'colour' (exact)
+  const resBestWins = gradeClozeAnswer('colour', 'color|colour');
+  assert(
+    resBestWins.category === 'exact' && resBestWins.score === 1.0,
+    'Grading: best result wins when one is exact and another is close'
+  );
+
+  // Empty input -> wrong
+  const resEmpty = gradeClozeAnswer('', 'color|colour');
+  assert(
+    resEmpty.category === 'wrong',
+    'Grading: empty student input -> wrong'
+  );
+
+  console.log('\n--- Testing Cloze Regression (Single Answer) ---');
+  const regExact = gradeClozeAnswer('mitochondria', 'mitochondria');
+  assert(regExact.category === 'exact' && regExact.isCorrect === true, 'Regression: exact single answer');
+  const regTypo = gradeClozeAnswer('mitochondrion', 'mitochondria');
+  assert(regTypo.category === 'close' && regTypo.isCorrect === true, 'Regression: typo on single answer');
+  const regShortExact = gradeClozeAnswer('atp', 'atp');
+  assert(regShortExact.category === 'exact', 'Regression: short term exact match');
+  const regShortWrong = gradeClozeAnswer('adp', 'atp');
+  assert(regShortWrong.category === 'wrong', 'Regression: short term strict rejection');
+  const regDiacritic = gradeClozeAnswer('corazon', 'corazón');
+  assert(regDiacritic.category === 'close', 'Regression: diacritic tolerance');
+  const regCodeSpacing = gradeClozeAnswer('x==y', 'x == y');
+  assert(regCodeSpacing.category === 'exact', 'Regression: code spacing tolerance');
 
   console.log(`\n========================================`);
   console.log(`Results: ${passed} passed, ${failed} failed.`);
