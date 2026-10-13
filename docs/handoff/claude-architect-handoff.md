@@ -293,3 +293,16 @@ When Claude takes the lead on future sprints, prioritize these architectural enh
    - Provide two-way interoperability with Anki collections, converting Anki `{{c1::...}}` clozes directly into Cadence interactive flashcards.
 4. **Institutional Teacher Dashboard & Learning Analytics**:
    - Aggregate anonymous misconception metrics to highlight which cognitive traps trip up the highest percentage of students.
+
+
+---
+
+## 9. Cadence v0.2.3 Status: Exam Date Pacing & Hardened Subsystems
+- **Deck-Level Exam Date**: Nullable `examDate DateTime?` column added to `Deck` in SQLite/Prisma schema.
+- **Pure Helpers in `lib/exam-pacing.ts`**:
+  - `validateExamDate(input, now)`: Validates ISO strings, rejects past dates, numbers, malformed strings with 400. Stores as UTC midnight.
+  - `daysUntilExam(examDate, now, timezoneOffsetMinutes)`: Calculates calendar days relative to user local timezone across month and leap day boundaries.
+- **API & UI Hydration**:
+  - `PATCH /api/decks/:id` validates and stores `examDate`.
+  - `DeckDetailClient.tsx` reads from server, handles one-time migration from legacy `cadence_exam_date_<id>` localStorage, and shows saving/error states.
+- **Test Baseline**: 111 unit tests passing in `scripts/test-unit.ts`.
